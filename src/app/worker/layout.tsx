@@ -72,9 +72,9 @@ function WorkerNameGate({ onEnter }: { onEnter: (name: string) => void }) {
 
         <div style={{ marginTop: 24, fontSize: 12, color: 'var(--text-muted)' }}>
           Admin?{' '}
-          <a href="/login" style={{ color: 'var(--accent-hover)', fontWeight: 600, textDecoration: 'none' }}>
+          <Link href="/login" style={{ color: 'var(--accent-hover)', fontWeight: 600, textDecoration: 'none' }}>
             Sign in here →
-          </a>
+          </Link>
         </div>
       </motion.div>
     </div>

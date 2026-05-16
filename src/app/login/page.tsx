@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Shield, ArrowRight, Eye, EyeOff, Zap, AlertCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { useAppStore } from '@/lib/store';
 
 // ─── Admin Credentials ────────────────────────────────────────────────────────
@@ -107,8 +108,8 @@ export default function LoginPage() {
           </form>
 
           <div style={{ marginTop: 24, padding: '12px 16px', background: 'var(--bg-glass)', borderRadius: 'var(--radius-md)', border: '1px solid var(--surface-border)', fontSize: 13, color: 'var(--text-muted)', textAlign: 'center' }}>
-            Worker? Go to{' '}
-            <a href="/worker" style={{ color: 'var(--accent-hover)', fontWeight: 600, textDecoration: 'none' }}>Worker Panel →</a>
+            Worker?{' '}
+            <Link href="/worker" style={{ color: 'var(--accent-hover)', fontWeight: 600, textDecoration: 'none' }}>Go to Worker Panel →</Link>
           </div>
         </motion.div>
       </div>
