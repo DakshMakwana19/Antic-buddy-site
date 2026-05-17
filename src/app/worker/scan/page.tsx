@@ -21,9 +21,7 @@ export default function ScanPage() {
     try {
       const constraints = {
         video: {
-          facingMode: { ideal: 'environment' },
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
+          facingMode: { ideal: 'environment' }
         }
       };
       const stream = await navigator.mediaDevices.getUserMedia(constraints);

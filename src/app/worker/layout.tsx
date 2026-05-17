@@ -86,7 +86,7 @@ export default function WorkerLayout({ children }: { children: React.ReactNode }
   // Use Zustand persisted state directly — no sessionStorage conflict
   const { user, setUser, theme } = useAppStore();
 
-  const workerName = user?.role === 'worker' ? user.name : null;
+  const workerName = user?.name || null;
 
   const handleEnter = (name: string) => {
     setUser({
@@ -148,16 +148,29 @@ export default function WorkerLayout({ children }: { children: React.ReactNode }
               {workerName}
             </span>
           </div>
-          <button
-            onClick={handleExit}
-            style={{
-              padding: '5px 12px', background: 'var(--bg-glass)',
-              border: '1px solid var(--surface-border)', borderRadius: 6,
-              color: 'var(--text-muted)', cursor: 'pointer', fontSize: 12, fontWeight: 600,
-            }}
-          >
-            Exit
-          </button>
+          {user?.role === 'admin' ? (
+            <Link
+              href="/admin"
+              style={{
+                padding: '5px 12px', background: 'var(--accent-subtle)',
+                border: '1px solid rgba(99,102,241,0.3)', borderRadius: 6,
+                color: 'var(--accent-hover)', textDecoration: 'none', fontSize: 12, fontWeight: 600,
+              }}
+            >
+              Admin Panel
+            </Link>
+          ) : (
+            <button
+              onClick={handleExit}
+              style={{
+                padding: '5px 12px', background: 'var(--bg-glass)',
+                border: '1px solid var(--surface-border)', borderRadius: 6,
+                color: 'var(--text-muted)', cursor: 'pointer', fontSize: 12, fontWeight: 600,
+              }}
+            >
+              Exit
+            </button>
+          )}
         </div>
       </header>
 
