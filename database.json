@@ -1,0 +1,612 @@
+{
+  "products": [
+    {
+      "id": "PRD-001",
+      "name": "AquaPure Crystal 500ml",
+      "code": "APC-500",
+      "category": "Beverages",
+      "tags": [
+        "Water"
+      ],
+      "images": [],
+      "image": "",
+      "price": 9.99,
+      "stock": 12400,
+      "specifications": {
+        "Bottle Type": "PET Round",
+        "Label Type": "Shrink Sleeve",
+        "Packaging Type": "Carton 24-pack",
+        "Size": "500ml",
+        "Color": "Clear"
+      },
+      "description": "Premium purified drinking water in crystal-clear PET bottle with holographic label.",
+      "notes": "Best seller. Handle with care during summer — expand slightly in heat.",
+      "instructions": "Stack max 5 cartons high. Store in cool dry area.",
+      "isCocreate": false,
+      "status": "active",
+      "createdAt": "2026-01-15",
+      "updatedAt": "2026-05-10",
+      "createdBy": "Admin"
+    },
+    {
+      "id": "PRD-002",
+      "name": "AquaPure Crystal 1L",
+      "code": "APC-1000",
+      "category": "Beverages",
+      "tags": [
+        "Water"
+      ],
+      "images": [],
+      "image": "",
+      "price": 9.99,
+      "stock": 8200,
+      "specifications": {
+        "Bottle Type": "PET Round",
+        "Label Type": "Shrink Sleeve",
+        "Packaging Type": "Carton 12-pack",
+        "Size": "1L",
+        "Color": "Clear"
+      },
+      "description": "Premium purified drinking water — 1 litre family size.",
+      "notes": "Same label design as 500ml. Different carton.",
+      "instructions": "Stack max 4 cartons high.",
+      "isCocreate": false,
+      "status": "active",
+      "createdAt": "2026-01-15",
+      "updatedAt": "2026-05-08",
+      "createdBy": "Admin"
+    },
+    {
+      "id": "PRD-003",
+      "name": "FreshSqueeze Orange Juice",
+      "code": "FSO-350",
+      "category": "Beverages",
+      "tags": [
+        "Juice"
+      ],
+      "images": [],
+      "image": "",
+      "price": 9.99,
+      "stock": 3600,
+      "specifications": {
+        "Bottle Type": "Glass Square",
+        "Label Type": "Paper Wrap",
+        "Packaging Type": "Crate 6-pack",
+        "Size": "350ml",
+        "Color": "Amber"
+      },
+      "description": "Cold-pressed orange juice in premium glass bottle.",
+      "notes": "Fragile! Glass bottles. Use foam dividers.",
+      "instructions": "Keep refrigerated. Shelf life 14 days.",
+      "isCocreate": true,
+      "status": "active",
+      "createdAt": "2026-02-01",
+      "updatedAt": "2026-05-12",
+      "createdBy": "Admin"
+    },
+    {
+      "id": "PRD-004",
+      "name": "FreshSqueeze Mango Nectar",
+      "code": "FSM-350",
+      "category": "Beverages",
+      "tags": [
+        "Juice"
+      ],
+      "images": [],
+      "image": "",
+      "price": 9.99,
+      "stock": 2800,
+      "specifications": {
+        "Bottle Type": "Glass Square",
+        "Label Type": "Paper Wrap",
+        "Packaging Type": "Crate 6-pack",
+        "Size": "350ml",
+        "Color": "Golden Yellow"
+      },
+      "description": "Tropical mango nectar in premium glass bottle.",
+      "notes": "Seasonal product. High demand March–June.",
+      "instructions": "Keep refrigerated. Shelf life 14 days.",
+      "isCocreate": true,
+      "status": "active",
+      "createdAt": "2026-02-01",
+      "updatedAt": "2026-05-11",
+      "createdBy": "Admin"
+    },
+    {
+      "id": "PRD-005",
+      "name": "VitaBoost Energy Drink",
+      "code": "VBE-250",
+      "category": "Beverages",
+      "tags": [
+        "Energy"
+      ],
+      "images": [],
+      "image": "",
+      "price": 9.99,
+      "stock": 18500,
+      "specifications": {
+        "Bottle Type": "Aluminum Can",
+        "Label Type": "Direct Print",
+        "Packaging Type": "Tray 24-pack",
+        "Size": "250ml",
+        "Color": "Neon Green"
+      },
+      "description": "High-caffeine energy drink with taurine and B-vitamins.",
+      "notes": "Do NOT shake before opening. Pressurized.",
+      "instructions": "Store upright. Avoid direct sunlight.",
+      "isCocreate": false,
+      "status": "active",
+      "createdAt": "2026-01-20",
+      "updatedAt": "2026-05-14",
+      "createdBy": "Admin"
+    },
+    {
+      "id": "PRD-006",
+      "name": "HerbalEase Green Tea",
+      "code": "HGT-500",
+      "category": "Beverages",
+      "tags": [
+        "Tea"
+      ],
+      "images": [],
+      "image": "",
+      "price": 9.99,
+      "stock": 6700,
+      "specifications": {
+        "Bottle Type": "PET Square",
+        "Label Type": "Self-Adhesive",
+        "Packaging Type": "Shrink Wrap 12-pack",
+        "Size": "500ml",
+        "Color": "Light Green"
+      },
+      "description": "Organic green tea with honey and lemon.",
+      "notes": "New product line. Premium shelf placement.",
+      "instructions": "Store below 25°C. Keep away from strong odors.",
+      "isCocreate": true,
+      "status": "active",
+      "createdAt": "2026-03-01",
+      "updatedAt": "2026-05-09",
+      "createdBy": "Admin"
+    },
+    {
+      "id": "PRD-007",
+      "name": "CleanWash Pro Detergent",
+      "code": "CWP-1000",
+      "category": "Home Care",
+      "tags": [
+        "Laundry"
+      ],
+      "images": [],
+      "image": "",
+      "price": 9.99,
+      "stock": 4200,
+      "specifications": {
+        "Bottle Type": "HDPE Round",
+        "Label Type": "Self-Adhesive",
+        "Packaging Type": "Individual Box",
+        "Size": "1L",
+        "Color": "Blue"
+      },
+      "description": "Professional-grade liquid laundry detergent.",
+      "notes": "Chemical product — keep separate from food items.",
+      "instructions": "Do not stack more than 3 high. Keep upright.",
+      "isCocreate": false,
+      "status": "active",
+      "createdAt": "2026-02-15",
+      "updatedAt": "2026-05-07",
+      "createdBy": "Admin"
+    },
+    {
+      "id": "PRD-008",
+      "name": "CleanWash Pro Detergent 2L",
+      "code": "CWP-2000",
+      "category": "Home Care",
+      "tags": [
+        "Laundry"
+      ],
+      "images": [],
+      "image": "",
+      "price": 9.99,
+      "stock": 2100,
+      "specifications": {
+        "Bottle Type": "HDPE Round",
+        "Label Type": "Self-Adhesive",
+        "Packaging Type": "Individual Box",
+        "Size": "2L",
+        "Color": "Blue"
+      },
+      "description": "Professional-grade liquid laundry detergent — economy size.",
+      "notes": "Heavy. Use pallet for transport.",
+      "instructions": "Do not stack more than 2 high. Keep upright.",
+      "isCocreate": false,
+      "status": "active",
+      "createdAt": "2026-02-15",
+      "updatedAt": "2026-05-06",
+      "createdBy": "Admin"
+    },
+    {
+      "id": "PRD-009",
+      "name": "GlowSkin Hand Wash",
+      "code": "GSH-250",
+      "category": "Personal Care",
+      "tags": [
+        "Hand Wash"
+      ],
+      "images": [],
+      "image": "",
+      "price": 9.99,
+      "stock": 9800,
+      "specifications": {
+        "Bottle Type": "PET Pump",
+        "Label Type": "Shrink Sleeve",
+        "Packaging Type": "Carton 12-pack",
+        "Size": "250ml",
+        "Color": "Pink"
+      },
+      "description": "Antibacterial hand wash with moisturizing formula.",
+      "notes": "Pump mechanism — test before bulk packaging.",
+      "instructions": "Store upright. Avoid freezing.",
+      "isCocreate": true,
+      "status": "active",
+      "createdAt": "2026-03-10",
+      "updatedAt": "2026-05-13",
+      "createdBy": "Admin"
+    },
+    {
+      "id": "PRD-010",
+      "name": "GlowSkin Body Lotion",
+      "code": "GSB-200",
+      "category": "Personal Care",
+      "tags": [
+        "Body Care"
+      ],
+      "images": [],
+      "image": "",
+      "price": 9.99,
+      "stock": 5400,
+      "specifications": {
+        "Bottle Type": "PET Flip-top",
+        "Label Type": "Self-Adhesive",
+        "Packaging Type": "Carton 24-pack",
+        "Size": "200ml",
+        "Color": "White"
+      },
+      "description": "Daily moisturizing body lotion with vitamin E.",
+      "notes": "Check flip-top seal before packaging.",
+      "instructions": "Store in cool dry place. Keep upright.",
+      "isCocreate": true,
+      "status": "active",
+      "createdAt": "2026-03-15",
+      "updatedAt": "2026-05-10",
+      "createdBy": "Admin"
+    },
+    {
+      "id": "PRD-011",
+      "name": "SparkleClean Glass Spray",
+      "code": "SCG-500",
+      "category": "Home Care",
+      "tags": [
+        "Cleaning"
+      ],
+      "images": [],
+      "image": "",
+      "price": 9.99,
+      "stock": 3100,
+      "specifications": {
+        "Bottle Type": "PET Trigger Spray",
+        "Label Type": "Paper Wrap",
+        "Packaging Type": "Shrink Wrap 6-pack",
+        "Size": "500ml",
+        "Color": "Transparent Blue"
+      },
+      "description": "Streak-free glass and surface cleaner.",
+      "notes": "Trigger spray — ensure nozzle is locked for shipping.",
+      "instructions": "Lock trigger during transport. Store upright.",
+      "isCocreate": false,
+      "status": "active",
+      "createdAt": "2026-04-01",
+      "updatedAt": "2026-05-12",
+      "createdBy": "Admin"
+    },
+    {
+      "id": "PRD-012",
+      "name": "NaturaBrew Coffee Cold Brew",
+      "code": "NCB-330",
+      "category": "Beverages",
+      "tags": [
+        "Coffee"
+      ],
+      "images": [],
+      "image": "",
+      "price": 9.99,
+      "stock": 1800,
+      "specifications": {
+        "Bottle Type": "Glass Round",
+        "Label Type": "Self-Adhesive",
+        "Packaging Type": "Crate 12-pack",
+        "Size": "330ml",
+        "Color": "Dark Brown"
+      },
+      "description": "Premium cold brew coffee — single origin beans.",
+      "notes": "Fragile glass. Premium product — special shelf.",
+      "instructions": "Keep refrigerated. Shelf life 21 days.",
+      "isCocreate": true,
+      "status": "active",
+      "createdAt": "2026-04-10",
+      "updatedAt": "2026-05-14",
+      "createdBy": "Admin"
+    },
+    {
+      "id": "PRD-013",
+      "name": "AquaPure Sparkling Water",
+      "code": "APS-330",
+      "category": "Beverages",
+      "tags": [
+        "Water"
+      ],
+      "images": [],
+      "image": "",
+      "price": 9.99,
+      "stock": 7600,
+      "specifications": {
+        "Bottle Type": "Glass Round",
+        "Label Type": "Shrink Sleeve",
+        "Packaging Type": "Crate 24-pack",
+        "Size": "330ml",
+        "Color": "Clear"
+      },
+      "description": "Naturally sparkling mineral water.",
+      "notes": "Carbonated — do not shake or drop.",
+      "instructions": "Store upright. Avoid extreme temperatures.",
+      "isCocreate": false,
+      "status": "active",
+      "createdAt": "2026-01-25",
+      "updatedAt": "2026-05-13",
+      "createdBy": "Admin"
+    },
+    {
+      "id": "PRD-014",
+      "name": "FloraScent Room Freshener",
+      "code": "FRF-300",
+      "category": "Home Care",
+      "tags": [
+        "Air Care"
+      ],
+      "images": [],
+      "image": "",
+      "price": 9.99,
+      "stock": 4500,
+      "specifications": {
+        "Bottle Type": "Aerosol Can",
+        "Label Type": "Direct Print",
+        "Packaging Type": "Individual Box",
+        "Size": "300ml",
+        "Color": "Lavender"
+      },
+      "description": "Long-lasting room freshener spray — lavender scent.",
+      "notes": "Pressurized container. Handle with extreme care.",
+      "instructions": "Do not expose to heat above 50°C. Do not pierce.",
+      "isCocreate": false,
+      "status": "active",
+      "createdAt": "2026-02-20",
+      "updatedAt": "2026-05-11",
+      "createdBy": "Admin"
+    },
+    {
+      "id": "PRD-015",
+      "name": "PureOlive Cooking Oil",
+      "code": "POC-750",
+      "category": "Food & Pantry",
+      "tags": [
+        "Oils"
+      ],
+      "images": [],
+      "image": "",
+      "price": 9.99,
+      "stock": 2200,
+      "specifications": {
+        "Bottle Type": "Glass Dark",
+        "Label Type": "Paper Wrap",
+        "Packaging Type": "Carton 6-pack",
+        "Size": "750ml",
+        "Color": "Dark Green"
+      },
+      "description": "Extra virgin olive oil — cold pressed.",
+      "notes": "Premium product. Dark glass protects from light.",
+      "instructions": "Handle carefully. Glass bottle. Store in dark area.",
+      "isCocreate": true,
+      "status": "active",
+      "createdAt": "2026-03-20",
+      "updatedAt": "2026-05-09",
+      "createdBy": "Admin"
+    },
+    {
+      "id": "PRD-016",
+      "name": "VitaBoost Sport Hydration",
+      "code": "VBS-500",
+      "category": "Beverages",
+      "tags": [
+        "Sports"
+      ],
+      "images": [],
+      "image": "",
+      "price": 9.99,
+      "stock": 5100,
+      "specifications": {
+        "Bottle Type": "PET Sport Cap",
+        "Label Type": "Shrink Sleeve",
+        "Packaging Type": "Tray 12-pack",
+        "Size": "500ml",
+        "Color": "Electric Blue"
+      },
+      "description": "Isotonic sports drink with electrolytes.",
+      "notes": "New design — sport cap with pull mechanism.",
+      "instructions": "Store in cool area. Avoid freezing.",
+      "isCocreate": false,
+      "status": "active",
+      "createdAt": "2026-04-05",
+      "updatedAt": "2026-05-14",
+      "createdBy": "Admin"
+    }
+  ],
+  "activityLogs": [
+    {
+      "id": "AL-001",
+      "userId": "U-002",
+      "userName": "Ravi Kumar",
+      "action": "Scanned product",
+      "target": "AquaPure Crystal 500ml",
+      "timestamp": "2026-05-15T10:30:00",
+      "type": "scan"
+    },
+    {
+      "id": "AL-002",
+      "userId": "U-003",
+      "userName": "Priya Sharma",
+      "action": "Viewed product",
+      "target": "VitaBoost Energy Drink",
+      "timestamp": "2026-05-15T10:25:00",
+      "type": "view"
+    },
+    {
+      "id": "AL-003",
+      "userId": "U-001",
+      "userName": "Tushar Makwana",
+      "action": "Updated stock",
+      "target": "GlowSkin Hand Wash",
+      "timestamp": "2026-05-15T10:15:00",
+      "type": "edit"
+    },
+    {
+      "id": "AL-004",
+      "userId": "U-004",
+      "userName": "Amit Patel",
+      "action": "Scanned product",
+      "target": "CleanWash Pro Detergent",
+      "timestamp": "2026-05-15T09:55:00",
+      "type": "scan"
+    },
+    {
+      "id": "AL-005",
+      "userId": "U-002",
+      "userName": "Ravi Kumar",
+      "action": "Viewed product",
+      "target": "FreshSqueeze Orange Juice",
+      "timestamp": "2026-05-15T09:40:00",
+      "type": "view"
+    },
+    {
+      "id": "AL-006",
+      "userId": "U-001",
+      "userName": "Tushar Makwana",
+      "action": "Added product",
+      "target": "NaturaBrew Coffee Cold Brew",
+      "timestamp": "2026-05-15T09:20:00",
+      "type": "create"
+    },
+    {
+      "id": "AL-007",
+      "userId": "U-003",
+      "userName": "Priya Sharma",
+      "action": "Scanned product",
+      "target": "HerbalEase Green Tea",
+      "timestamp": "2026-05-15T09:10:00",
+      "type": "scan"
+    },
+    {
+      "id": "AL-008",
+      "userId": "U-004",
+      "userName": "Amit Patel",
+      "action": "Logged in",
+      "target": "Worker Panel",
+      "timestamp": "2026-05-15T09:00:00",
+      "type": "login"
+    },
+    {
+      "id": "AL-009",
+      "userId": "U-001",
+      "userName": "Tushar Makwana",
+      "action": "Deleted product",
+      "target": "TestProduct-Draft",
+      "timestamp": "2026-05-14T17:30:00",
+      "type": "delete"
+    },
+    {
+      "id": "AL-010",
+      "userId": "U-002",
+      "userName": "Ravi Kumar",
+      "action": "Scanned product",
+      "target": "SparkleClean Glass Spray",
+      "timestamp": "2026-05-14T16:45:00",
+      "type": "scan"
+    }
+  ],
+  "recognitionLogs": [
+    {
+      "id": "RL-001",
+      "userId": "U-002",
+      "userName": "Ravi Kumar",
+      "productId": "PRD-001",
+      "productName": "AquaPure Crystal 500ml",
+      "confidence": 97.3,
+      "matched": true,
+      "timestamp": "2026-05-15T10:30:00",
+      "imageUrl": ""
+    },
+    {
+      "id": "RL-002",
+      "userId": "U-003",
+      "userName": "Priya Sharma",
+      "productId": "PRD-005",
+      "productName": "VitaBoost Energy Drink",
+      "confidence": 94.8,
+      "matched": true,
+      "timestamp": "2026-05-15T10:25:00",
+      "imageUrl": ""
+    },
+    {
+      "id": "RL-003",
+      "userId": "U-004",
+      "userName": "Amit Patel",
+      "productId": "PRD-007",
+      "productName": "CleanWash Pro Detergent",
+      "confidence": 91.2,
+      "matched": true,
+      "timestamp": "2026-05-15T09:55:00",
+      "imageUrl": ""
+    },
+    {
+      "id": "RL-004",
+      "userId": "U-003",
+      "userName": "Priya Sharma",
+      "productId": "PRD-006",
+      "productName": "HerbalEase Green Tea",
+      "confidence": 88.5,
+      "matched": true,
+      "timestamp": "2026-05-15T09:10:00",
+      "imageUrl": ""
+    },
+    {
+      "id": "RL-005",
+      "userId": "U-002",
+      "userName": "Ravi Kumar",
+      "productId": null,
+      "productName": null,
+      "confidence": 34.2,
+      "matched": false,
+      "timestamp": "2026-05-14T16:45:00",
+      "imageUrl": ""
+    },
+    {
+      "id": "RL-006",
+      "userId": "U-004",
+      "userName": "Amit Patel",
+      "productId": "PRD-009",
+      "productName": "GlowSkin Hand Wash",
+      "confidence": 96.1,
+      "matched": true,
+      "timestamp": "2026-05-14T15:30:00",
+      "imageUrl": ""
+    }
+  ]
+}
