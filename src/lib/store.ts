@@ -2,8 +2,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { Product, User, ActivityLog, RecognitionLog } from '@/types';
-import { db } from './firebase';
-import { collection, doc, setDoc, updateDoc, deleteDoc, onSnapshot, query, orderBy } from 'firebase/firestore';
 
 interface AppState {
   user: User | null;
@@ -18,20 +16,18 @@ interface AppState {
   toggleTheme: () => void;
   setSidebarOpen: (open: boolean) => void;
   
-  // Firebase actions
+  // API actions
+  fetchData: () => Promise<void>;
   addProduct: (product: Product) => Promise<void>;
   updateProduct: (id: string, updates: Partial<Product>) => Promise<void>;
   deleteProduct: (id: string) => Promise<void>;
   addActivityLog: (log: ActivityLog) => Promise<void>;
   addRecognitionLog: (log: RecognitionLog) => Promise<void>;
-
-  // Init listeners
-  initFirebaseListeners: () => () => void;
 }
 
 export const useAppStore = create<AppState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       user: null,
       products: [],
       activityLogs: [],
@@ -44,86 +40,87 @@ export const useAppStore = create<AppState>()(
       toggleTheme: () => set((s) => ({ theme: s.theme === 'dark' ? 'light' : 'dark' })),
       setSidebarOpen: (sidebarOpen) => set({ sidebarOpen }),
 
+      fetchData: async () => {
+        try {
+          const [productsRes, activityRes, recognitionRes] = await Promise.all([
+            fetch('/api/products').then(res => res.json()),
+            fetch('/api/activity').then(res => res.json()),
+            fetch('/api/recognition').then(res => res.json()),
+          ]);
+          set({
+            products: productsRes || [],
+            activityLogs: activityRes || [],
+            recognitionLogs: recognitionRes || [],
+          });
+        } catch (error) {
+          console.error("Failed to fetch data:", error);
+        }
+      },
+
       addProduct: async (product) => {
         try {
-          await setDoc(doc(db, 'products', product.id), product);
-        } catch (error) {
-          console.error("Firebase addProduct error:", error);
-          // Fallback to local state if Firebase not configured
+          await fetch('/api/products', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(product),
+          });
           set((s) => ({ products: [product, ...s.products] }));
+        } catch (error) {
+          console.error("Add product error:", error);
         }
       },
       updateProduct: async (id, updates) => {
         try {
-          await updateDoc(doc(db, 'products', id), updates);
-        } catch (error) {
-          console.error("Firebase updateProduct error:", error);
+          await fetch(`/api/products/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(updates),
+          });
           set((s) => ({
             products: s.products.map((p) => (p.id === id ? { ...p, ...updates } : p)),
           }));
+        } catch (error) {
+          console.error("Update product error:", error);
         }
       },
       deleteProduct: async (id) => {
         try {
-          await deleteDoc(doc(db, 'products', id));
-        } catch (error) {
-          console.error("Firebase deleteProduct error:", error);
+          await fetch(`/api/products/${id}`, { method: 'DELETE' });
           set((s) => ({
             products: s.products.filter((p) => p.id !== id),
           }));
+        } catch (error) {
+          console.error("Delete product error:", error);
         }
       },
       addActivityLog: async (log) => {
         try {
-          await setDoc(doc(db, 'activityLogs', log.id), log);
-        } catch (error) {
-          console.error("Firebase log error:", error);
+          await fetch('/api/activity', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(log),
+          });
           set((s) => ({ activityLogs: [log, ...s.activityLogs] }));
+        } catch (error) {
+          console.error("Activity log error:", error);
         }
       },
       addRecognitionLog: async (log) => {
         try {
-          await setDoc(doc(db, 'recognitionLogs', log.id), log);
-        } catch (error) {
-          console.error("Firebase log error:", error);
+          await fetch('/api/recognition', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(log),
+          });
           set((s) => ({ recognitionLogs: [log, ...s.recognitionLogs] }));
+        } catch (error) {
+          console.error("Recognition log error:", error);
         }
       },
-
-      initFirebaseListeners: () => {
-        // We catch errors so if Firebase isn't set up yet, the app doesn't crash completely.
-        try {
-          const unsubProducts = onSnapshot(query(collection(db, 'products')), (snapshot) => {
-            const products = snapshot.docs.map(d => d.data() as Product);
-            // Sort by createdAt descending locally since we didn't add a composite index on firestore for simplicity
-            products.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-            set({ products });
-          }, (err) => console.error("Products listener error:", err));
-
-          const unsubActivities = onSnapshot(query(collection(db, 'activityLogs')), (snapshot) => {
-            const activityLogs = snapshot.docs.map(d => d.data() as ActivityLog);
-            set({ activityLogs });
-          }, (err) => console.error("Activities listener error:", err));
-
-          const unsubRecognitions = onSnapshot(query(collection(db, 'recognitionLogs')), (snapshot) => {
-            const recognitionLogs = snapshot.docs.map(d => d.data() as RecognitionLog);
-            set({ recognitionLogs });
-          }, (err) => console.error("Recognitions listener error:", err));
-
-          return () => {
-            unsubProducts();
-            unsubActivities();
-            unsubRecognitions();
-          };
-        } catch (err) {
-          console.error("Firebase Init Error:", err);
-          return () => {};
-        }
-      }
     }),
     {
       name: 'anticbuddy-store',
-      // ONLY persist auth user and theme. Data comes from Firebase now.
+      // ONLY persist auth user and theme. Data comes from API now.
       partialize: (s) => ({
         user: s.user,
         theme: s.theme,
