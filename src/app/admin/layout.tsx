@@ -12,6 +12,7 @@ const navItems = [
   { href: '/admin/catalog', label: 'Catalog', icon: Grid3X3 },
   { href: '/admin/analytics', label: 'Analytics', icon: BarChart3 },
   { href: '/admin/upload', label: 'Add Product', icon: Upload },
+  { href: '/admin/import', label: 'Bulk Import', icon: Upload },
   { href: '/admin/recognition', label: 'AI Recognition', icon: Camera },
   { href: '/admin/activity', label: 'Activity Logs', icon: Activity },
   { href: '/admin/settings', label: 'Settings', icon: Settings },
