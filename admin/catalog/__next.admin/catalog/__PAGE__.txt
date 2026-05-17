@@ -1,9 +1,9 @@
 1:"$Sreact.fragment"
-2:I[47257,["/Antic-buddy-site/_next/static/chunks/01xlw8hd842-c.js","/Antic-buddy-site/_next/static/chunks/0d3shmwh5_nmn.js"],"ClientPageRoot"]
-3:I[89132,["/Antic-buddy-site/_next/static/chunks/01xlw8hd842-c.js","/Antic-buddy-site/_next/static/chunks/0d3shmwh5_nmn.js","/Antic-buddy-site/_next/static/chunks/102310a7uszr2.js","/Antic-buddy-site/_next/static/chunks/0p104xby541yi.js","/Antic-buddy-site/_next/static/chunks/0adgs81-ugr~5.js"],"default"]
-6:I[97367,["/Antic-buddy-site/_next/static/chunks/01xlw8hd842-c.js","/Antic-buddy-site/_next/static/chunks/0d3shmwh5_nmn.js"],"OutletBoundary"]
+2:I[47257,["/Antic-buddy-site/_next/static/chunks/0t~-j09tkx6x5.js","/Antic-buddy-site/_next/static/chunks/12a4w7yv__9md.js","/Antic-buddy-site/_next/static/chunks/0d3shmwh5_nmn.js"],"ClientPageRoot"]
+3:I[89132,["/Antic-buddy-site/_next/static/chunks/0t~-j09tkx6x5.js","/Antic-buddy-site/_next/static/chunks/12a4w7yv__9md.js","/Antic-buddy-site/_next/static/chunks/0d3shmwh5_nmn.js","/Antic-buddy-site/_next/static/chunks/0licnkwwa42.0.js","/Antic-buddy-site/_next/static/chunks/0p104xby541yi.js","/Antic-buddy-site/_next/static/chunks/0s7x2qbis7whk.js"],"default"]
+6:I[97367,["/Antic-buddy-site/_next/static/chunks/0t~-j09tkx6x5.js","/Antic-buddy-site/_next/static/chunks/12a4w7yv__9md.js","/Antic-buddy-site/_next/static/chunks/0d3shmwh5_nmn.js"],"OutletBoundary"]
 7:"$Sreact.suspense"
-0:{"rsc":["$","$1","c",{"children":[["$","$L2",null,{"Component":"$3","serverProvidedParams":{"searchParams":{},"params":{},"promises":["$@4","$@5"]}}],[["$","script","script-0",{"src":"/Antic-buddy-site/_next/static/chunks/0adgs81-ugr~5.js","async":true}]],["$","$L6",null,{"children":["$","$7",null,{"name":"Next.MetadataOutlet","children":"$@8"}]}]]}],"isPartial":false,"staleTime":300,"varyParams":null,"buildId":"Bex-G1g4K1Npa1eLCPuXw"}
+0:{"rsc":["$","$1","c",{"children":[["$","$L2",null,{"Component":"$3","serverProvidedParams":{"searchParams":{},"params":{},"promises":["$@4","$@5"]}}],[["$","script","script-0",{"src":"/Antic-buddy-site/_next/static/chunks/0s7x2qbis7whk.js","async":true}]],["$","$L6",null,{"children":["$","$7",null,{"name":"Next.MetadataOutlet","children":"$@8"}]}]]}],"isPartial":false,"staleTime":300,"varyParams":null,"buildId":"ddVIYdpJg2RzoBnEluPe-"}
 4:{}
 5:"$0:rsc:props:children:0:props:serverProvidedParams:params"
 8:null
