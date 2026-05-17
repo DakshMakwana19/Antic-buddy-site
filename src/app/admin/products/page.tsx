@@ -1,40 +1,54 @@
 'use client';
 import { useState, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Plus, Edit2, Trash2, Eye, Package, X, Upload, Image as ImageIcon } from 'lucide-react';
+import { Search, Plus, Edit2, Trash2, Eye, Package, X, Upload, Image as ImageIcon, Filter } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
 import { Product } from '@/types';
 
-type EditableProduct = Omit<Product, 'quantity'> & { quantity: number | string };
+type EditableProduct = Omit<Product, 'price' | 'stock'> & { price: string | number; stock: string | number };
 
 const emptyProduct = (): EditableProduct => ({
-  id: '', name: '', code: '', category: '', subcategory: '',
-  bottleType: '', labelType: '', packagingType: '',
-  size: '', color: '', quantity: 0, description: '', notes: '', instructions: '',
-  isCocreate: false, image: '', status: 'active',
-  createdAt: new Date().toISOString().split('T')[0],
-  updatedAt: new Date().toISOString().split('T')[0],
+  id: '', name: '', code: '', category: '', tags: [], images: [], image: '',
+  price: '', stock: '', specifications: {}, description: '', notes: '', instructions: '',
+  isCocreate: false, status: 'active', createdBy: '',
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString(),
 });
 
 export default function ProductsPage() {
-  const { products, deleteProduct, updateProduct, addProduct } = useAppStore();
+  const { products, deleteProduct, updateProduct, addProduct, user } = useAppStore();
   const [search, setSearch] = useState('');
+  const [filterCategory, setFilterCategory] = useState('All');
+  
   const [showModal, setShowModal] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editProduct, setEditProduct] = useState<EditableProduct>(emptyProduct());
+  const [specs, setSpecs] = useState<{ key: string; val: string }[]>([]);
+  const [tagsInput, setTagsInput] = useState('');
+  
   const [viewProduct, setViewProduct] = useState<Product | null>(null);
   const [imagePreview, setImagePreview] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Dynamic Categories from database
+  const categories = useMemo(() => {
+    const cats = new Set<string>();
+    products.forEach(p => { if (p.category) cats.add(p.category); });
+    return ['All', ...Array.from(cats)];
+  }, [products]);
+
   const filtered = useMemo(() => {
-    if (!search) return products;
-    const q = search.toLowerCase();
-    return products.filter(p =>
-      p.name.toLowerCase().includes(q) ||
-      p.code.toLowerCase().includes(q) ||
-      p.category.toLowerCase().includes(q)
-    );
-  }, [products, search]);
+    return products.filter(p => {
+      const matchSearch = search ? (
+        p.name.toLowerCase().includes(search.toLowerCase()) ||
+        p.code.toLowerCase().includes(search.toLowerCase()) ||
+        p.category.toLowerCase().includes(search.toLowerCase()) ||
+        (p.tags && p.tags.some(t => t.toLowerCase().includes(search.toLowerCase())))
+      ) : true;
+      const matchCat = filterCategory === 'All' ? true : p.category === filterCategory;
+      return matchSearch && matchCat;
+    });
+  }, [products, search, filterCategory]);
 
   const handleImageFile = (file: File) => {
     if (!file.type.startsWith('image/')) return;
@@ -43,7 +57,6 @@ export default function ProductsPage() {
     reader.onload = (e) => {
       const result = e.target?.result as string;
       setImagePreview(result);
-      setEditProduct(prev => ({ ...prev, image: result }));
     };
     reader.readAsDataURL(file);
   };
@@ -54,46 +67,62 @@ export default function ProductsPage() {
 
   const openEdit = (product: Product) => {
     setEditProduct({ ...product });
+    setTagsInput(product.tags?.join(', ') || '');
+    const specArr = Object.entries(product.specifications || {}).map(([k, v]) => ({ key: k, val: v }));
+    setSpecs(specArr.length > 0 ? specArr : [{ key: 'Size', val: '' }]);
     setImagePreview(product.image || '');
     setIsEditing(true);
     setShowModal(true);
   };
 
   const openAdd = () => {
-    const newId = `PRD-${String(products.length + 1).padStart(3, '0')}`;
-    setEditProduct({ ...emptyProduct(), id: newId });
+    setEditProduct({ ...emptyProduct(), id: `PRD-${Date.now()}`, createdBy: user?.name || 'Admin' });
+    setTagsInput('');
+    setSpecs([{ key: 'Bottle Type', val: '' }, { key: 'Size', val: '' }]);
     setImagePreview('');
     setIsEditing(false);
     setShowModal(true);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!editProduct.name || !editProduct.code) {
       alert('Product Name and Code are required.');
       return;
     }
+    
+    const specRecord: Record<string, string> = {};
+    specs.forEach(s => {
+      if (s.key.trim() && s.val.trim()) specRecord[s.key.trim()] = s.val.trim();
+    });
+
     const finalProduct: Product = {
       ...editProduct,
-      quantity: Number(editProduct.quantity) || 0,
+      price: Number(editProduct.price) || 0,
+      stock: Number(editProduct.stock) || 0,
+      tags: tagsInput.split(',').map(t => t.trim()).filter(Boolean),
+      specifications: specRecord,
       image: imagePreview || editProduct.image || '',
-      updatedAt: new Date().toISOString().split('T')[0],
+      images: [imagePreview || editProduct.image || ''].filter(Boolean),
+      updatedAt: new Date().toISOString(),
     };
+
     if (isEditing) {
-      updateProduct(finalProduct.id, finalProduct);
+      await updateProduct(finalProduct.id, finalProduct);
     } else {
-      addProduct(finalProduct);
+      await addProduct(finalProduct);
     }
     setShowModal(false);
   };
 
   const closeModal = () => { setShowModal(false); setImagePreview(''); };
 
-  const Field = ({ label, k, placeholder, type = 'text' }: { label: string; k: keyof EditableProduct; placeholder?: string; type?: string }) => (
+  const Field = ({ label, k, placeholder, type = 'text', list }: { label: string; k: keyof EditableProduct; placeholder?: string; type?: string; list?: string }) => (
     <div className="float-label">
       <label>{label}</label>
       <input
         className="input-field"
         type={type}
+        list={list}
         placeholder={placeholder}
         value={String(editProduct[k] ?? '')}
         onChange={e => setEditProduct(prev => ({ ...prev, [k]: type === 'number' ? e.target.value : e.target.value }))}
@@ -105,17 +134,23 @@ export default function ProductsPage() {
     <div>
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
         <div>
-          <h1 className="page-title" style={{ marginBottom: 4 }}>Products</h1>
+          <h1 className="page-title" style={{ marginBottom: 4 }}>Products Management</h1>
           <p className="page-subtitle">{products.length} total · {filtered.length} showing</p>
         </div>
         <button className="btn-primary" onClick={openAdd}><Plus size={16} /> Add Product</button>
       </div>
 
-      {/* Search */}
-      <div style={{ marginBottom: 16 }}>
-        <div className="search-wrapper">
+      {/* Search & Filters */}
+      <div style={{ marginBottom: 16, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+        <div className="search-wrapper" style={{ flex: '1 1 300px' }}>
           <Search size={16} />
-          <input className="input-field" placeholder="Search by name, code or category..." value={search} onChange={e => setSearch(e.target.value)} style={{ paddingLeft: 42 }} />
+          <input className="input-field" placeholder="Search by name, code, tags or category..." value={search} onChange={e => setSearch(e.target.value)} style={{ paddingLeft: 42 }} />
+        </div>
+        <div style={{ flex: '0 0 auto', display: 'flex', alignItems: 'center', gap: 8, background: 'var(--bg-glass)', border: '1px solid var(--surface-border)', padding: '0 12px', borderRadius: 'var(--radius-md)' }}>
+          <Filter size={16} color="var(--text-muted)" />
+          <select value={filterCategory} onChange={e => setFilterCategory(e.target.value)} style={{ background: 'transparent', border: 'none', color: 'var(--text-primary)', outline: 'none', padding: '10px 0', cursor: 'pointer' }}>
+            {categories.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
         </div>
       </div>
 
@@ -128,7 +163,7 @@ export default function ProductsPage() {
                 <th>Product</th>
                 <th>Code</th>
                 <th>Category</th>
-                <th>Size / Qty</th>
+                <th>Price / Stock</th>
                 <th>Status</th>
                 <th style={{ textAlign: 'right' }}>Actions</th>
               </tr>
@@ -147,13 +182,17 @@ export default function ProductsPage() {
                         </div>
                         <div>
                           <div style={{ fontWeight: 600, fontSize: 13, color: 'var(--text-primary)' }}>{p.name}</div>
-                          <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{p.bottleType || '—'}</div>
+                          <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                            {p.tags && p.tags.length > 0 ? p.tags.slice(0, 2).join(', ') : 'No tags'}
+                          </div>
                         </div>
                       </div>
                     </td>
                     <td><code style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--accent-hover)', background: 'var(--accent-subtle)', padding: '2px 8px', borderRadius: 4 }}>{p.code}</code></td>
                     <td style={{ fontSize: 13 }}>{p.category || '—'}</td>
-                    <td style={{ fontSize: 13 }}>{p.size || '—'} · <strong>{p.quantity.toLocaleString()}</strong></td>
+                    <td style={{ fontSize: 13 }}>
+                      ${p.price?.toFixed(2) || '0.00'} · <strong>{p.stock}</strong> in stock
+                    </td>
                     <td><span className={`badge ${p.status === 'active' ? 'badge-success' : p.status === 'draft' ? 'badge-warning' : 'badge-danger'}`}>{p.status}</span></td>
                     <td>
                       <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
@@ -180,17 +219,21 @@ export default function ProductsPage() {
         {filtered.length === 0 && (
           <div style={{ padding: 60, textAlign: 'center' }}>
             <Package size={36} color="var(--text-muted)" style={{ marginBottom: 10 }} />
-            <p style={{ fontSize: 14, color: 'var(--text-muted)' }}>{products.length === 0 ? 'No products yet. Click "Add Product" to get started.' : 'No products match your search.'}</p>
+            <p style={{ fontSize: 14, color: 'var(--text-muted)' }}>{products.length === 0 ? 'No products yet. Click "Add Product" to get started.' : 'No products match your filters.'}</p>
           </div>
         )}
       </div>
 
+      <datalist id="dynamicCategories">
+        {categories.filter(c => c !== 'All').map(c => <option key={c} value={c} />)}
+      </datalist>
+
       {/* ── ADD / EDIT MODAL ── */}
       <AnimatePresence>
         {showModal && (
-          <motion.div className="modal-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={closeModal}>
+          <motion.div className="modal-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={closeModal} style={{ zIndex: 1000, overflowY: 'auto' }}>
             <motion.div className="modal-content" initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
-              onClick={e => e.stopPropagation()} style={{ padding: '22px 18px' }}>
+              onClick={e => e.stopPropagation()} style={{ padding: '22px 18px', maxWidth: 800, margin: '40px auto' }}>
 
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
                 <h2 style={{ fontSize: 17, fontWeight: 700 }}>{isEditing ? '✏️ Edit Product' : '➕ Add New Product'}</h2>
@@ -227,14 +270,32 @@ export default function ProductsPage() {
               <div className="responsive-form-grid" style={{ marginBottom: 12 }}>
                 <Field label="Product Name *" k="name" placeholder="e.g. AquaPure 500ml" />
                 <Field label="Product Code *" k="code" placeholder="e.g. APC-500" />
-                <Field label="Category" k="category" placeholder="e.g. Beverages" />
-                <Field label="Subcategory" k="subcategory" placeholder="e.g. Water" />
-                <Field label="Bottle Type" k="bottleType" placeholder="e.g. PET Round" />
-                <Field label="Label Type" k="labelType" placeholder="e.g. Shrink Sleeve" />
-                <Field label="Packaging" k="packagingType" placeholder="e.g. Carton 12-pack" />
-                <Field label="Size" k="size" placeholder="e.g. 500ml" />
-                <Field label="Color" k="color" placeholder="e.g. Clear" />
-                <Field label="Quantity" k="quantity" type="number" />
+                <Field label="Category" k="category" list="dynamicCategories" placeholder="Custom category" />
+                <Field label="Price ($)" k="price" type="number" />
+                <Field label="Stock Quantity" k="stock" type="number" />
+                <div className="float-label">
+                  <label>Tags</label>
+                  <input className="input-field" placeholder="comma separated" value={tagsInput} onChange={e => setTagsInput(e.target.value)} />
+                </div>
+              </div>
+
+              {/* Dynamic Specifications */}
+              <div style={{ marginBottom: 20, padding: 14, background: 'var(--bg-primary)', borderRadius: 'var(--radius-md)', border: '1px solid var(--surface-border)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                  <h4 style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-secondary)' }}>Specifications</h4>
+                  <button type="button" onClick={() => setSpecs([...specs, { key: '', val: '' }])} style={{ background: 'none', border: 'none', color: 'var(--accent-hover)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 600 }}>
+                    <Plus size={14} /> Add Spec
+                  </button>
+                </div>
+                {specs.map((s, i) => (
+                  <div key={i} style={{ display: 'flex', gap: 10, marginBottom: 8 }}>
+                    <input className="input-field" placeholder="Name (e.g. Weight)" value={s.key} onChange={e => { const n = [...specs]; n[i].key = e.target.value; setSpecs(n); }} style={{ flex: 1 }} />
+                    <input className="input-field" placeholder="Value (e.g. 1.2kg)" value={s.val} onChange={e => { const n = [...specs]; n[i].val = e.target.value; setSpecs(n); }} style={{ flex: 2 }} />
+                    <button type="button" onClick={() => setSpecs(specs.filter((_, idx) => idx !== i))} style={{ background: 'var(--danger-subtle)', border: 'none', borderRadius: 8, padding: '0 12px', cursor: 'pointer', color: 'var(--danger)' }}>
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                ))}
               </div>
 
               <div className="float-label" style={{ marginBottom: 10 }}><label>Description</label><textarea className="input-field" rows={2} value={editProduct.description} onChange={e => setEditProduct(p => ({ ...p, description: e.target.value }))} style={{ resize: 'vertical' }} /></div>
@@ -258,9 +319,9 @@ export default function ProductsPage() {
       {/* ── VIEW MODAL ── */}
       <AnimatePresence>
         {viewProduct && (
-          <motion.div className="modal-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setViewProduct(null)}>
+          <motion.div className="modal-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setViewProduct(null)} style={{ zIndex: 1000, overflowY: 'auto' }}>
             <motion.div className="modal-content" initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
-              onClick={e => e.stopPropagation()} style={{ padding: '22px 18px' }}>
+              onClick={e => e.stopPropagation()} style={{ padding: '22px 18px', maxWidth: 800, margin: '40px auto' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
                 <h2 style={{ fontSize: 17, fontWeight: 700 }}>{viewProduct.name}</h2>
                 <div style={{ display: 'flex', gap: 8 }}>
@@ -277,17 +338,34 @@ export default function ProductsPage() {
               <div className="responsive-form-grid" style={{ gap: 12, marginBottom: 14 }}>
                 {[
                   ['Code', viewProduct.code], ['Category', viewProduct.category],
-                  ['Bottle Type', viewProduct.bottleType], ['Label Type', viewProduct.labelType],
-                  ['Packaging', viewProduct.packagingType], ['Size', viewProduct.size],
-                  ['Color', viewProduct.color], ['Quantity', viewProduct.quantity.toLocaleString()],
+                  ['Price', `$${viewProduct.price?.toFixed(2)}`], ['Stock', viewProduct.stock],
                   ['Status', viewProduct.status], ['Co-Create', viewProduct.isCocreate ? 'Yes' : 'No'],
                 ].map(([label, val]) => (
-                  <div key={label}>
+                  <div key={label as string}>
                     <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 3 }}>{label}</div>
                     <div style={{ fontSize: 13, fontWeight: 500 }}>{val || '—'}</div>
                   </div>
                 ))}
               </div>
+
+              {viewProduct.specifications && Object.keys(viewProduct.specifications).length > 0 && (
+                <div style={{ marginBottom: 14, padding: 12, background: 'var(--bg-primary)', borderRadius: 8, border: '1px solid var(--surface-border)' }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 8 }}>Specifications</div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 8 }}>
+                    {Object.entries(viewProduct.specifications).map(([k, v]) => (
+                      <div key={k} style={{ fontSize: 13 }}><span style={{ color: 'var(--text-secondary)' }}>{k}:</span> <strong>{v}</strong></div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {viewProduct.tags && viewProduct.tags.length > 0 && (
+                <div style={{ marginBottom: 14 }}>
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                    {viewProduct.tags.map(t => <span key={t} style={{ fontSize: 11, background: 'var(--bg-glass)', padding: '2px 8px', borderRadius: 12, border: '1px solid var(--surface-border)' }}>{t}</span>)}
+                  </div>
+                </div>
+              )}
 
               {viewProduct.description && <div style={{ marginBottom: 10 }}><div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 4 }}>Description</div><div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6 }}>{viewProduct.description}</div></div>}
               {viewProduct.notes && <div style={{ padding: 12, background: 'var(--warning-subtle)', borderRadius: 8, border: '1px solid rgba(245,158,11,0.2)', marginBottom: 8 }}><div style={{ fontSize: 11, fontWeight: 700, color: 'var(--warning)', marginBottom: 4 }}>Admin Notes</div><div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{viewProduct.notes}</div></div>}

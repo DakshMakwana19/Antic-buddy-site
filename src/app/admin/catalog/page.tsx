@@ -3,7 +3,6 @@ import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Search, Grid3X3, List, Package, Tag, Box, Droplets, Pill } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
-import { categories } from '@/lib/data';
 
 const catIcons: Record<string, React.ElementType> = { 'Beverages': Droplets, 'Home Care': Box, 'Personal Care': Pill, 'Food & Pantry': Tag };
 const catColors: Record<string, string> = { 'Beverages': '#6366f1', 'Home Care': '#22c55e', 'Personal Care': '#f59e0b', 'Food & Pantry': '#ef4444' };
@@ -13,6 +12,8 @@ export default function CatalogPage() {
   const [search, setSearch] = useState('');
   const [activeCat, setActiveCat] = useState('');
   const [view, setView] = useState<'grid' | 'list'>('grid');
+
+  const categories = useMemo(() => Array.from(new Set(products.map(p => p.category).filter(Boolean))), [products]);
 
   const filtered = useMemo(() => {
     return products.filter(p => {
@@ -96,12 +97,8 @@ export default function CatalogPage() {
 
                   <code style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--text-muted)', display: 'block', marginBottom: 12 }}>{p.code}</code>
 
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, fontSize: 12 }}>
-                    <div><span style={{ color: 'var(--text-muted)' }}>Size:</span> <span style={{ fontWeight: 600 }}>{p.size}</span></div>
-                    <div><span style={{ color: 'var(--text-muted)' }}>Color:</span> <span style={{ fontWeight: 600 }}>{p.color}</span></div>
-                    <div><span style={{ color: 'var(--text-muted)' }}>Label:</span> <span style={{ fontWeight: 600 }}>{p.labelType}</span></div>
-                    <div><span style={{ color: 'var(--text-muted)' }}>Qty:</span> <span style={{ fontWeight: 700, color }}>{p.quantity.toLocaleString()}</span></div>
-                  </div>
+                    <div><span style={{ color: 'var(--text-muted)' }}>Price:</span> <span style={{ fontWeight: 600 }}>${p.price?.toFixed(2)}</span></div>
+                    <div><span style={{ color: 'var(--text-muted)' }}>Stock:</span> <span style={{ fontWeight: 700, color }}>{p.stock}</span></div>
 
                   <div style={{ marginTop: 12, padding: '8px 12px', background: 'var(--bg-glass)', borderRadius: 'var(--radius-sm)', fontSize: 11, color: 'var(--text-muted)' }}>
                     📦 {p.packagingType}
@@ -117,7 +114,7 @@ export default function CatalogPage() {
                     <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{p.code} · {p.category} · {p.bottleType} · {p.size}</div>
                   </div>
                   <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                    <div style={{ fontWeight: 700, fontSize: 14, color }}>{p.quantity.toLocaleString()}</div>
+                    <div style={{ fontWeight: 700, fontSize: 14, color }}>{p.stock}</div>
                     <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>in stock</div>
                   </div>
                   <span className="badge badge-success" style={{ fontSize: 11 }}>{p.status}</span>

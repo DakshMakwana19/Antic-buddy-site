@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { usePathname } from 'next/navigation';
 import { useAppStore } from '@/lib/store';
@@ -87,6 +87,10 @@ export default function WorkerLayout({ children }: { children: React.ReactNode }
   const { user, setUser, theme } = useAppStore();
 
   const workerName = user?.name || null;
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
+  if (!mounted) return null;
 
   const handleEnter = (name: string) => {
     setUser({

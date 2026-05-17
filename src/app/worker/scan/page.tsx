@@ -55,42 +55,119 @@ export default function ScanPage() {
     setCameraActive(false);
   }, []);
 
-  const simulateScan = useCallback(() => {
+  const performScan = useCallback(async () => {
     if (products.length === 0) {
       setCameraError('No products in the database yet. Ask your admin to add products first.');
       return;
     }
+    if (!videoRef.current || !cameraActive) {
+      setCameraError('Camera is not active.');
+      return;
+    }
+
     setScanning(true);
     setResult(null);
     setNoMatch(false);
-    setTimeout(() => {
-      const random = Math.random();
+    setCameraError('');
+
+    try {
+      // 1. Capture frame from video
+      const canvas = document.createElement('canvas');
+      canvas.width = videoRef.current.videoWidth;
+      canvas.height = videoRef.current.videoHeight;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) throw new Error('Could not get canvas context');
+      ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
+      const base64Image = canvas.toDataURL('image/jpeg', 0.8).split(',')[1];
+
+      // 2. Prepare API call
+      const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
+      if (!apiKey) {
+        throw new Error('AI recognition failed: API key missing. Please configure NEXT_PUBLIC_GEMINI_API_KEY in your environment variables.');
+      }
+
+      const productList = products.map(p => `ID: ${p.id}, Name: ${p.name}, Code: ${p.code}`).join('\n');
+      const prompt = `You are a product recognition AI. I will provide an image of a product and a list of known products. 
+Identify the product from the list that best matches the image.
+Return ONLY a JSON object with the exact format: {"id": "matched_id", "confidence": 95}
+If no product matches, return {"id": null, "confidence": 0}
+
+Known products:
+${productList}`;
+
+      // 3. Call Gemini API
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{
+            parts: [
+              { text: prompt },
+              { inline_data: { mime_type: 'image/jpeg', data: base64Image } }
+            ]
+          }],
+          generationConfig: { response_mime_type: "application/json" }
+        })
+      });
+
+      if (!response.ok) {
+        const errText = await response.text();
+        throw new Error(`API error (${response.status}): ${errText}`);
+      }
+
+      const data = await response.json();
+      const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+      
+      let aiResult;
+      try {
+        aiResult = JSON.parse(rawText || '{}');
+      } catch (e) {
+        console.error("Failed to parse AI response:", rawText);
+        throw new Error("Invalid response format from AI");
+      }
+
       const workerName = user?.name || 'Worker';
-      if (random > 0.15) {
-        const product = products[Math.floor(Math.random() * products.length)];
-        const conf = 85 + Math.random() * 14;
-        setResult(product);
-        setConfidence(Math.round(conf * 10) / 10);
-        addRecognitionLog({
-          id: `RL-${Date.now()}`, userId: user?.id || 'W-001', userName: workerName,
-          productId: product.id, productName: product.name,
-          confidence: Math.round(conf * 10) / 10, matched: true,
-          timestamp: new Date().toISOString(), imageUrl: '',
-        });
+
+      if (aiResult.id && aiResult.confidence > 60) {
+        const matchedProduct = products.find(p => p.id === aiResult.id);
+        if (matchedProduct) {
+          setResult(matchedProduct);
+          setConfidence(aiResult.confidence);
+          addRecognitionLog({
+            id: `RL-${Date.now()}`, userId: user?.id || 'W-001', userName: workerName,
+            productId: matchedProduct.id, productName: matchedProduct.name,
+            confidence: aiResult.confidence, matched: true,
+            timestamp: new Date().toISOString(), imageUrl: '',
+          });
+        } else {
+          throw new Error("AI returned an invalid product ID");
+        }
       } else {
         setNoMatch(true);
-        const conf = 25 + Math.random() * 20;
-        setConfidence(Math.round(conf * 10) / 10);
+        setConfidence(aiResult.confidence || 0);
         addRecognitionLog({
           id: `RL-${Date.now()}`, userId: user?.id || 'W-001', userName: workerName,
           productId: null, productName: null,
-          confidence: Math.round(conf * 10) / 10, matched: false,
+          confidence: aiResult.confidence || 0, matched: false,
           timestamp: new Date().toISOString(), imageUrl: '',
         });
       }
+
+    } catch (err: any) {
+      console.error("Scan Error:", err);
+      setCameraError(err.message || 'An error occurred during AI recognition.');
+      
+      // Fallback log
+      addRecognitionLog({
+        id: `RL-${Date.now()}`, userId: user?.id || 'W-001', userName: user?.name || 'Worker',
+        productId: null, productName: null,
+        confidence: 0, matched: false,
+        timestamp: new Date().toISOString(), imageUrl: '',
+      });
+    } finally {
       setScanning(false);
-    }, 2000);
-  }, [products, addRecognitionLog, user]);
+    }
+  }, [products, addRecognitionLog, user, cameraActive]);
 
   const searchResults = searchQuery.length > 1
     ? products.filter(p =>
@@ -167,7 +244,7 @@ export default function ScanPage() {
                   </div>
 
                   <div style={{ display: 'flex', gap: 10, marginBottom: 14 }}>
-                    {[{ label: 'Size', val: result.size }, { label: 'Color', val: result.color }, { label: 'Stock', val: result.quantity.toLocaleString() }].map(({ label, val }) => (
+                    {[{ label: 'Size', val: result.size }, { label: 'Color', val: result.color }, { label: 'Stock', val: result.stock }].map(({ label, val }) => (
                       <div key={label} style={{ flex: 1, padding: 10, background: 'var(--bg-glass)', borderRadius: 'var(--radius-md)', textAlign: 'center' }}>
                         <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 3 }}>{label}</div>
                         <div style={{ fontSize: 15, fontWeight: 800 }}>{val || '—'}</div>
@@ -256,7 +333,7 @@ export default function ScanPage() {
                     style={{ padding: '14px 0', fontSize: 14 }}>
                     <Camera size={16} /> {cameraActive ? 'Stop Camera' : 'Start Camera'}
                   </button>
-                  <button className="btn-primary" onClick={simulateScan} disabled={scanning || !cameraActive}
+                  <button className="btn-primary" onClick={performScan} disabled={scanning || !cameraActive}
                     style={{ padding: '14px 0', fontSize: 14, opacity: (scanning || !cameraActive) ? 0.5 : 1 }}>
                     {scanning ? (
                       <><div style={{ width: 14, height: 14, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} /> Scanning...</>

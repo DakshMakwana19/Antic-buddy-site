@@ -6,6 +6,8 @@ export const metadata: Metadata = {
   description: "Built to simplify operations, train teams faster, and eliminate manual confusion. By Tushar Makwana.",
 };
 
+import FirebaseInit from "@/components/FirebaseInit";
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" data-theme="dark">
@@ -14,7 +16,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
       </head>
-      <body>{children}</body>
+      <body>
+        <FirebaseInit />
+        {children}
+      </body>
     </html>
   );
 }

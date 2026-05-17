@@ -3,13 +3,14 @@ import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Package, X, Tag, Box, FileText, Info, AlertCircle, ChevronDown } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
-import { categories } from '@/lib/data';
 
 export default function WorkerCatalogPage() {
   const { products } = useAppStore();
   const [search, setSearch] = useState('');
   const [catFilter, setCatFilter] = useState('');
   const [selected, setSelected] = useState<typeof products[0] | null>(null);
+
+  const categories = useMemo(() => Array.from(new Set(products.map(p => p.category).filter(Boolean))), [products]);
 
   const filtered = useMemo(() => {
     return products.filter(p => {
@@ -49,7 +50,7 @@ export default function WorkerCatalogPage() {
           </div>
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 2 }}>{p.name}</div>
-            <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{p.code} · {p.size} · {p.bottleType}</div>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{p.code} · ${p.price?.toFixed(2)}</div>
           </div>
           <div style={{ textAlign: 'right', flexShrink: 0 }}>
             <span className="badge badge-success" style={{ fontSize: 10 }}>{p.status}</span>
@@ -87,11 +88,8 @@ export default function WorkerCatalogPage() {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
                 {[
                   { label: 'Category', val: selected.category },
-                  { label: 'Bottle Type', val: selected.bottleType },
-                  { label: 'Label', val: selected.labelType },
-                  { label: 'Packaging', val: selected.packagingType },
-                  { label: 'Size', val: selected.size },
-                  { label: 'Color', val: selected.color },
+                  { label: 'Price', val: `$${selected.price?.toFixed(2)}` },
+                  ...(selected.tags ? [{ label: 'Tags', val: selected.tags.join(', ') }] : [])
                 ].map(d => (
                   <div key={d.label} style={{ padding: 12, background: 'var(--bg-glass)', borderRadius: 'var(--radius-md)' }}>
                     <div style={{ fontSize: 10, color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600, marginBottom: 4 }}>{d.label}</div>
@@ -100,9 +98,20 @@ export default function WorkerCatalogPage() {
                 ))}
               </div>
 
+              {selected.specifications && Object.keys(selected.specifications).length > 0 && (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
+                  {Object.entries(selected.specifications).map(([k, v]) => (
+                    <div key={k} style={{ padding: 12, background: 'var(--bg-glass)', borderRadius: 'var(--radius-md)' }}>
+                      <div style={{ fontSize: 10, color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600, marginBottom: 4 }}>{k}</div>
+                      <div style={{ fontSize: 14, fontWeight: 600 }}>{v}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
               <div style={{ padding: 14, background: 'var(--bg-glass)', borderRadius: 'var(--radius-md)', textAlign: 'center', marginBottom: 16 }}>
                 <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>Stock Quantity</div>
-                <div style={{ fontSize: 28, fontWeight: 800 }}>{selected.quantity.toLocaleString()}</div>
+                <div style={{ fontSize: 28, fontWeight: 800 }}>{selected.stock}</div>
               </div>
 
               {selected.description && <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: 14 }}>{selected.description}</p>}

@@ -1,23 +1,31 @@
 export interface Product {
   id: string;
-  name: string;
+  name: string; // Used as title
   code: string;
   category: string;
-  subcategory: string;
-  bottleType: string;
-  labelType: string;
-  packagingType: string;
-  size: string;
-  color: string;
-  quantity: number;
+  tags: string[];
+  images: string[];
+  image: string; // Kept for backward compatibility
+  price: number;
+  stock: number;
+  specifications: Record<string, string>;
   description: string;
   notes: string;
   instructions: string;
   isCocreate: boolean;
-  image: string;
   status: 'active' | 'discontinued' | 'draft';
   createdAt: string;
   updatedAt: string;
+  createdBy: string;
+  
+  // Legacy fields (optional)
+  subcategory?: string;
+  bottleType?: string;
+  labelType?: string;
+  packagingType?: string;
+  size?: string;
+  color?: string;
+  quantity?: number;
 }
 
 export interface User {
@@ -58,3 +66,4 @@ export interface DashboardStats {
   categoriesCount: number;
   workersActive: number;
 }
+

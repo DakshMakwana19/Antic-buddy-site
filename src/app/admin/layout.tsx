@@ -40,14 +40,22 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     router.push('/login');
   };
 
+  const [mounted, setMounted] = useState(false);
+
   // Auth guard — only check once on mount
   useEffect(() => {
-    if (!user || user.role !== 'admin') {
-      router.replace('/login');
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    setMounted(true);
   }, []);
 
+  useEffect(() => {
+    if (mounted) {
+      if (!user || user.role !== 'admin') {
+        router.replace('/login');
+      }
+    }
+  }, [mounted, user, router]);
+
+  if (!mounted) return null; // Wait for hydration
   if (!user || user.role !== 'admin') return null;
 
 

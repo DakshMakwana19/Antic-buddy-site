@@ -1,22 +1,35 @@
 'use client';
-import { useState, useRef } from 'react';
+import { useState, useRef, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { Upload, Package, Check, Image as ImageIcon, X } from 'lucide-react';
+import { Upload, Package, Check, Image as ImageIcon, X, Plus, Trash2 } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
+import { Product } from '@/types';
 
 export default function UploadPage() {
-  const { addProduct, products } = useAppStore();
+  const { addProduct, products, user } = useAppStore();
   const [dragOver, setDragOver] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [imagePreview, setImagePreview] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+
   const [form, setForm] = useState({
-    name: '', code: '', category: '', subcategory: '',
-    bottleType: '', labelType: '', packagingType: '',
-    size: '', color: '', quantity: 0,
-    description: '', notes: '', instructions: '',
-    isCocreate: false,
+    name: '', code: '', category: '', price: 0, stock: 0,
+    tags: '', description: '', notes: '', instructions: '',
+    isCocreate: false, status: 'active' as const
   });
+
+  const [specs, setSpecs] = useState<{ key: string; val: string }[]>([
+    { key: 'Bottle Type', val: '' },
+    { key: 'Size', val: '' }
+  ]);
+
+  // Extract dynamic categories for datalist auto-complete
+  const existingCategories = useMemo(() => {
+    const cats = new Set<string>();
+    products.forEach(p => { if (p.category) cats.add(p.category); });
+    return Array.from(cats);
+  }, [products]);
 
   const update = (key: string, value: string | number | boolean) =>
     setForm(f => ({ ...f, [key]: value }));
@@ -41,32 +54,58 @@ export default function UploadPage() {
     if (file) handleImageFile(file);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.name || !form.code) return;
-    addProduct({
-      ...form,
-      id: `PRD-${String(products.length + 1).padStart(3, '0')}`,
-      image: imagePreview,
-      status: 'active',
-      createdAt: new Date().toISOString().split('T')[0],
-      updatedAt: new Date().toISOString().split('T')[0],
+    setSaving(true);
+    
+    const specRecord: Record<string, string> = {};
+    specs.forEach(s => {
+      if (s.key.trim() && s.val.trim()) specRecord[s.key.trim()] = s.val.trim();
     });
+
+    const newProduct: Product = {
+      id: `PRD-${Date.now()}`,
+      name: form.name,
+      code: form.code,
+      category: form.category,
+      tags: form.tags.split(',').map(t => t.trim()).filter(Boolean),
+      images: [imagePreview].filter(Boolean),
+      image: imagePreview, // legacy
+      price: Number(form.price) || 0,
+      stock: Number(form.stock) || 0,
+      specifications: specRecord,
+      description: form.description,
+      notes: form.notes,
+      instructions: form.instructions,
+      isCocreate: form.isCocreate,
+      status: form.status,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      createdBy: user?.name || 'Admin',
+    };
+
+    await addProduct(newProduct);
+    
     setSaved(true);
+    setSaving(false);
     setTimeout(() => setSaved(false), 3000);
-    setForm({ name: '', code: '', category: '', subcategory: '', bottleType: '', labelType: '', packagingType: '', size: '', color: '', quantity: 0, description: '', notes: '', instructions: '', isCocreate: false });
+    
+    setForm({ name: '', code: '', category: '', price: 0, stock: 0, tags: '', description: '', notes: '', instructions: '', isCocreate: false, status: 'active' });
+    setSpecs([{ key: 'Bottle Type', val: '' }, { key: 'Size', val: '' }]);
     setImagePreview('');
   };
 
-  const Field = ({ label, k, placeholder, type = 'text' }: { label: string; k: string; placeholder?: string; type?: string }) => (
+  const Field = ({ label, k, placeholder, type = 'text', list }: { label: string; k: string; placeholder?: string; type?: string; list?: string }) => (
     <div className="float-label">
       <label>{label}</label>
       <input
         className="input-field"
         type={type}
+        list={list}
         placeholder={placeholder}
         value={String((form as Record<string, unknown>)[k] ?? '')}
-        onChange={e => update(k, type === 'number' ? parseInt(e.target.value) || 0 : e.target.value)}
+        onChange={e => update(k, type === 'number' ? parseFloat(e.target.value) || 0 : e.target.value)}
       />
     </div>
   );
@@ -75,15 +114,19 @@ export default function UploadPage() {
     <div>
       <div style={{ marginBottom: 24 }}>
         <h1 className="page-title" style={{ marginBottom: 4 }}>Add Product</h1>
-        <p className="page-subtitle">Add a new product to the database.</p>
+        <p className="page-subtitle">Add a new product to the central database.</p>
       </div>
 
       {saved && (
         <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
           style={{ padding: '14px 20px', background: 'var(--success-subtle)', border: '1px solid rgba(34,197,94,0.3)', borderRadius: 'var(--radius-md)', marginBottom: 20, display: 'flex', alignItems: 'center', gap: 10, fontSize: 14, fontWeight: 600, color: 'var(--success)' }}>
-          <Check size={18} /> Product added successfully!
+          <Check size={18} /> Product added and synced successfully!
         </motion.div>
       )}
+
+      <datalist id="categoriesList">
+        {existingCategories.map(c => <option key={c} value={c} />)}
+      </datalist>
 
       <form onSubmit={handleSubmit}>
         <div className="responsive-form-layout" style={{ gap: 20 }}>
@@ -94,14 +137,29 @@ export default function UploadPage() {
             <div className="responsive-form-grid" style={{ marginBottom: 14 }}>
               <Field label="Product Name *" k="name" placeholder="e.g. AquaPure Crystal 500ml" />
               <Field label="Product Code *" k="code" placeholder="e.g. APC-500" />
-              <Field label="Category" k="category" placeholder="e.g. Beverages, Home Care" />
-              <Field label="Subcategory" k="subcategory" placeholder="e.g. Water, Juice" />
-              <Field label="Bottle Type" k="bottleType" placeholder="e.g. PET Round, Glass" />
-              <Field label="Label Type" k="labelType" placeholder="e.g. Shrink Sleeve" />
-              <Field label="Packaging" k="packagingType" placeholder="e.g. Carton 12-pack" />
-              <Field label="Size" k="size" placeholder="e.g. 500ml, 1L" />
-              <Field label="Color" k="color" placeholder="e.g. Clear, Blue" />
-              <Field label="Quantity" k="quantity" type="number" />
+              <Field label="Category" k="category" list="categoriesList" placeholder="Type new or select existing" />
+              <Field label="Price ($)" k="price" type="number" />
+              <Field label="Stock Quantity" k="stock" type="number" />
+              <Field label="Tags" k="tags" placeholder="e.g. new, bestseller, liquid (comma separated)" />
+            </div>
+
+            {/* Dynamic Specifications */}
+            <div style={{ marginBottom: 20, padding: 14, background: 'var(--bg-primary)', borderRadius: 'var(--radius-md)', border: '1px solid var(--surface-border)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                <h4 style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-secondary)' }}>Specifications</h4>
+                <button type="button" onClick={() => setSpecs([...specs, { key: '', val: '' }])} style={{ background: 'none', border: 'none', color: 'var(--accent-hover)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 600 }}>
+                  <Plus size={14} /> Add Spec
+                </button>
+              </div>
+              {specs.map((s, i) => (
+                <div key={i} style={{ display: 'flex', gap: 10, marginBottom: 8 }}>
+                  <input className="input-field" placeholder="Name (e.g. Size)" value={s.key} onChange={e => { const n = [...specs]; n[i].key = e.target.value; setSpecs(n); }} style={{ flex: 1 }} />
+                  <input className="input-field" placeholder="Value (e.g. 500ml)" value={s.val} onChange={e => { const n = [...specs]; n[i].val = e.target.value; setSpecs(n); }} style={{ flex: 2 }} />
+                  <button type="button" onClick={() => setSpecs(specs.filter((_, idx) => idx !== i))} style={{ background: 'var(--danger-subtle)', border: 'none', borderRadius: 8, padding: '0 12px', cursor: 'pointer', color: 'var(--danger)' }}>
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+              ))}
             </div>
 
             <div className="float-label" style={{ marginBottom: 12 }}>
@@ -122,8 +180,8 @@ export default function UploadPage() {
               Co-Create Product
             </label>
 
-            <button type="submit" className="btn-primary" style={{ padding: '14px 32px', fontSize: 15 }}>
-              <Package size={16} /> Save Product
+            <button type="submit" disabled={saving} className="btn-primary" style={{ padding: '14px 32px', fontSize: 15, opacity: saving ? 0.7 : 1 }}>
+              <Package size={16} /> {saving ? 'Saving...' : 'Save Product'}
             </button>
           </div>
 
