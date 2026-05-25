@@ -116,19 +116,7 @@ export default function ProductsPage() {
 
   const closeModal = () => { setShowModal(false); setImagePreview(''); };
 
-  const Field = ({ label, k, placeholder, type = 'text', list }: { label: string; k: keyof EditableProduct; placeholder?: string; type?: string; list?: string }) => (
-    <div className="float-label">
-      <label>{label}</label>
-      <input
-        className="input-field"
-        type={type}
-        list={list}
-        placeholder={placeholder}
-        value={String(editProduct[k] ?? '')}
-        onChange={e => setEditProduct(prev => ({ ...prev, [k]: type === 'number' ? e.target.value : e.target.value }))}
-      />
-    </div>
-  );
+
 
   return (
     <div>
@@ -268,11 +256,11 @@ export default function ProductsPage() {
 
               {/* Fields */}
               <div className="responsive-form-grid" style={{ marginBottom: 12 }}>
-                <Field label="Product Name *" k="name" placeholder="e.g. AquaPure 500ml" />
-                <Field label="Product Code *" k="code" placeholder="e.g. APC-500" />
-                <Field label="Category" k="category" list="dynamicCategories" placeholder="Custom category" />
-                <Field label="Price ($)" k="price" type="number" />
-                <Field label="Stock Quantity" k="stock" type="number" />
+                <div className="float-label"><label>Product Name *</label><input className="input-field" value={editProduct.name} onChange={e => setEditProduct(prev => ({ ...prev, name: e.target.value }))} placeholder="e.g. AquaPure 500ml" /></div>
+                <div className="float-label"><label>Product Code *</label><input className="input-field" value={editProduct.code} onChange={e => setEditProduct(prev => ({ ...prev, code: e.target.value }))} placeholder="e.g. APC-500" /></div>
+                <div className="float-label"><label>Category</label><input className="input-field" list="dynamicCategories" value={editProduct.category} onChange={e => setEditProduct(prev => ({ ...prev, category: e.target.value }))} placeholder="Custom category" /></div>
+                <div className="float-label"><label>Price ($)</label><input className="input-field" type="number" value={editProduct.price} onChange={e => setEditProduct(prev => ({ ...prev, price: e.target.value }))} /></div>
+                <div className="float-label"><label>Stock Quantity</label><input className="input-field" type="number" value={editProduct.stock} onChange={e => setEditProduct(prev => ({ ...prev, stock: e.target.value }))} /></div>
                 <div className="float-label">
                   <label>Tags</label>
                   <input className="input-field" placeholder="comma separated" value={tagsInput} onChange={e => setTagsInput(e.target.value)} />

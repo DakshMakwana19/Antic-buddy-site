@@ -96,19 +96,7 @@ export default function UploadPage() {
     setImagePreview('');
   };
 
-  const Field = ({ label, k, placeholder, type = 'text', list }: { label: string; k: string; placeholder?: string; type?: string; list?: string }) => (
-    <div className="float-label">
-      <label>{label}</label>
-      <input
-        className="input-field"
-        type={type}
-        list={list}
-        placeholder={placeholder}
-        value={String((form as Record<string, unknown>)[k] ?? '')}
-        onChange={e => update(k, type === 'number' ? parseFloat(e.target.value) || 0 : e.target.value)}
-      />
-    </div>
-  );
+
 
   return (
     <div>
@@ -135,12 +123,12 @@ export default function UploadPage() {
             <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 18 }}>Product Details</h3>
 
             <div className="responsive-form-grid" style={{ marginBottom: 14 }}>
-              <Field label="Product Name *" k="name" placeholder="e.g. AquaPure Crystal 500ml" />
-              <Field label="Product Code *" k="code" placeholder="e.g. APC-500" />
-              <Field label="Category" k="category" list="categoriesList" placeholder="Type new or select existing" />
-              <Field label="Price ($)" k="price" type="number" />
-              <Field label="Stock Quantity" k="stock" type="number" />
-              <Field label="Tags" k="tags" placeholder="e.g. new, bestseller, liquid (comma separated)" />
+              <div className="float-label"><label>Product Name *</label><input className="input-field" value={form.name} onChange={e => update('name', e.target.value)} placeholder="e.g. AquaPure Crystal 500ml" /></div>
+              <div className="float-label"><label>Product Code *</label><input className="input-field" value={form.code} onChange={e => update('code', e.target.value)} placeholder="e.g. APC-500" /></div>
+              <div className="float-label"><label>Category</label><input className="input-field" list="categoriesList" value={form.category} onChange={e => update('category', e.target.value)} placeholder="Type new or select existing" /></div>
+              <div className="float-label"><label>Price ($)</label><input className="input-field" type="number" value={form.price} onChange={e => update('price', parseFloat(e.target.value) || 0)} /></div>
+              <div className="float-label"><label>Stock Quantity</label><input className="input-field" type="number" value={form.stock} onChange={e => update('stock', parseFloat(e.target.value) || 0)} /></div>
+              <div className="float-label"><label>Tags</label><input className="input-field" value={form.tags} onChange={e => update('tags', e.target.value)} placeholder="e.g. new, bestseller, liquid (comma separated)" /></div>
             </div>
 
             {/* Dynamic Specifications */}
