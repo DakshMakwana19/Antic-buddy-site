@@ -2051,6 +2051,17 @@
   ],
   "recognitionLogs": [
     {
+      "id": "RL-1779696062949",
+      "userId": "W-1779696044908",
+      "userName": "Rahul",
+      "productId": null,
+      "productName": null,
+      "confidence": 0,
+      "matched": false,
+      "timestamp": "2026-05-25T08:01:02.949Z",
+      "imageUrl": ""
+    },
+    {
       "id": "RL-001",
       "userId": "U-002",
       "userName": "Ravi Kumar",

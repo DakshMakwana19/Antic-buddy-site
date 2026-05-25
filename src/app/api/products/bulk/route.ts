@@ -14,17 +14,13 @@ export async function POST(req: Request) {
 
     const db = await readDb();
     
-    // De-duplicate: If a product code already exists, we skip or overwrite?
-    // Let's overwrite existing codes, and append new ones.
     const existingCodes = new Map(db.products.map((p, index) => [p.code, index]));
     
     for (const p of newProducts) {
       if (existingCodes.has(p.code)) {
-        // Overwrite
         const idx = existingCodes.get(p.code)!;
         db.products[idx] = { ...db.products[idx], ...p };
       } else {
-        // Append
         db.products.unshift(p);
       }
     }

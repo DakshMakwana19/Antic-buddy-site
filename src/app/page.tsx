@@ -126,39 +126,6 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* DASHBOARD PREVIEW */}
-      <section style={{ padding: '60px 16px', position: 'relative', overflow: 'hidden' }}>
-        <div className="orb" style={{ width: 600, height: 600, background: '#6366f1', bottom: '-20%', right: '-10%', filter: 'blur(120px)', opacity: 0.1, position: 'absolute' }} />
-        <div style={{ maxWidth: 1120, margin: '0 auto' }}>
-          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.3 }} variants={stagger} style={{ textAlign: 'center', marginBottom: 48 }}>
-            <motion.div variants={fadeUp} style={{ fontSize: 13, fontWeight: 600, color: 'var(--accent-hover)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12 }}>Dashboard Preview</motion.div>
-            <motion.h2 variants={fadeUp} style={{ fontSize: 'clamp(28px, 4vw, 44px)', fontWeight: 800, letterSpacing: '-0.03em' }}>Command Center for Managers</motion.h2>
-          </motion.div>
-
-          <motion.div initial={{ opacity: 0, y: 40 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.8 }} className="glass-card" style={{ padding: '20px', overflow: 'hidden' }}>
-            {/* Mock Dashboard Preview */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12, marginBottom: 20 }}>
-              {[
-                { label: 'Total Products', val: '16', color: '#6366f1' },
-                { label: 'Active Scans', val: '284', color: '#22c55e' },
-                { label: 'Recognition Rate', val: '94.7%', color: '#f59e0b' },
-                { label: 'Workers Online', val: '3', color: '#3b82f6' },
-              ].map((c) => (
-                <div key={c.label} style={{ padding: 20, background: 'var(--bg-glass)', borderRadius: 'var(--radius-md)', border: '1px solid var(--surface-border)' }}>
-                  <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 8, fontWeight: 500 }}>{c.label}</div>
-                  <div style={{ fontSize: 28, fontWeight: 800, color: c.color }}>{c.val}</div>
-                </div>
-              ))}
-            </div>
-            <div style={{ height: 200, background: 'var(--bg-glass)', borderRadius: 'var(--radius-md)', border: '1px solid var(--surface-border)', display: 'flex', alignItems: 'flex-end', padding: '0 20px 20px', gap: 8 }}>
-              {[65, 45, 80, 55, 90, 70, 85, 60, 95, 75, 50, 88].map((h, i) => (
-                <motion.div key={i} initial={{ height: 0 }} whileInView={{ height: `${h}%` }} viewport={{ once: true }} transition={{ duration: 0.8, delay: i * 0.05 }}
-                  style={{ flex: 1, background: 'var(--gradient-brand)', borderRadius: '4px 4px 0 0', opacity: 0.8 }} />
-              ))}
-            </div>
-          </motion.div>
-        </div>
-      </section>
 
       {/* FOUNDER */}
       <section style={{ padding: '60px 16px', background: 'var(--bg-secondary)' }}>

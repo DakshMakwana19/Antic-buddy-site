@@ -14,6 +14,7 @@ export async function POST(req: Request) {
     const db = await readDb();
     
     db.recognitionLogs.unshift(log); // Add to beginning
+    db.recognitionLogs = db.recognitionLogs.slice(0, 1000);
     await writeDb(db);
     
     return NextResponse.json({ success: true });
