@@ -229,9 +229,9 @@ ${productList}`;
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 14 }}>
                     {[
                       { icon: Tag, label: 'Category', val: result.category },
-                      { icon: Box, label: 'Bottle Type', val: result.bottleType },
-                      { icon: FileText, label: 'Label', val: result.labelType },
-                      { icon: Package, label: 'Packaging', val: result.packagingType },
+                      { icon: Box, label: 'Bottle Type', val: result.bottleType || result.specifications?.['Bottle Type'] },
+                      { icon: FileText, label: 'Label Size', val: result.labelSize || result.specifications?.['Label Size'] },
+                      { icon: Package, label: 'Size', val: result.size ? `${result.size} ${result.unit || ''}` : result.specifications?.Size },
                     ].map(d => (
                       <div key={d.label} style={{ padding: 10, background: 'var(--bg-glass)', borderRadius: 'var(--radius-md)' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 3 }}>

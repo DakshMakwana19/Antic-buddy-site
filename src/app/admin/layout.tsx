@@ -2,21 +2,39 @@
 import { usePathname, useRouter } from 'next/navigation';
 import { useAppStore } from '@/lib/store';
 import { motion, AnimatePresence } from 'framer-motion';
-import { LayoutDashboard, Package, Grid3X3, BarChart3, Upload, Activity, Settings, LogOut, Menu, X, Sun, Moon, Camera } from 'lucide-react';
+import { LayoutDashboard, Package, Grid3X3, BarChart3, Upload, Activity, Settings, LogOut, Menu, X, Sun, Moon, Camera, FileSpreadsheet } from 'lucide-react';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 
-const navItems = [
-  { href: '/admin', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/admin/products', label: 'Products', icon: Package },
-  { href: '/admin/catalog', label: 'Catalog', icon: Grid3X3 },
-  { href: '/admin/analytics', label: 'Analytics', icon: BarChart3 },
-  { href: '/admin/upload', label: 'Add Product', icon: Upload },
-  { href: '/admin/import', label: 'Bulk Import', icon: Upload },
-  { href: '/admin/recognition', label: 'AI Recognition', icon: Camera },
-  { href: '/admin/activity', label: 'Activity Logs', icon: Activity },
-  { href: '/admin/settings', label: 'Settings', icon: Settings },
+const navGroups = [
+  {
+    label: 'Overview',
+    items: [
+      { href: '/admin', label: 'Dashboard', icon: LayoutDashboard },
+      { href: '/admin/analytics', label: 'Analytics', icon: BarChart3 },
+      { href: '/admin/activity', label: 'Activity Logs', icon: Activity },
+    ],
+  },
+  {
+    label: 'Products',
+    items: [
+      { href: '/admin/products', label: 'All Products', icon: Package },
+      { href: '/admin/catalog', label: 'Catalog View', icon: Grid3X3 },
+      { href: '/admin/upload', label: 'Add Product', icon: Upload },
+      { href: '/admin/import', label: 'CSV Import', icon: FileSpreadsheet },
+    ],
+  },
+  {
+    label: 'Tools',
+    items: [
+      { href: '/admin/recognition', label: 'AI Recognition', icon: Camera },
+      { href: '/admin/settings', label: 'Settings', icon: Settings },
+    ],
+  },
 ];
+
+// Flat list for active check
+const navItems = navGroups.flatMap(g => g.items);
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -42,21 +60,25 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   };
 
   const [mounted, setMounted] = useState(false);
+  const [authChecked, setAuthChecked] = useState(false);
 
-  // Auth guard — only check once on mount
+  // Wait for client hydration + Zustand rehydration before checking auth
   useEffect(() => {
     setMounted(true);
+    // Small timeout ensures zustand persist has time to rehydrate
+    const timer = setTimeout(() => setAuthChecked(true), 100);
+    return () => clearTimeout(timer);
   }, []);
 
   useEffect(() => {
-    if (mounted) {
+    if (authChecked) {
       if (!user || user.role !== 'admin') {
         router.replace('/login');
       }
     }
-  }, [mounted, user, router]);
+  }, [authChecked, user, router]);
 
-  if (!mounted) return null; // Wait for hydration
+  if (!mounted || !authChecked) return null; // Wait for full hydration
   if (!user || user.role !== 'admin') return null;
 
 
@@ -92,18 +114,23 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
         <div style={{ height: 1, background: 'var(--surface-border)', margin: '12px 8px 16px' }} />
 
-        <nav style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2, padding: '0 4px', overflowY: 'auto' }}>
-          {navItems.map((item) => {
-            const isActive = pathname === item.href;
-            return (
-              <Link key={item.href} href={item.href} className={`sidebar-link ${isActive ? 'active' : ''}`}
-                onClick={() => setSidebarOpen(false)}>
-                <item.icon size={18} />
-                <span>{item.label}</span>
-                {isActive && <motion.div layoutId="activeTab" style={{ position: 'absolute', left: 0, width: 3, top: 6, bottom: 6, borderRadius: 2, background: 'var(--accent)' }} />}
-              </Link>
-            );
-          })}
+        <nav style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 0, padding: '0 4px', overflowY: 'auto' }}>
+          {navGroups.map((group) => (
+            <div key={group.label} style={{ marginBottom: 4 }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', padding: '10px 12px 4px' }}>{group.label}</div>
+              {group.items.map((item) => {
+                const isActive = pathname === item.href;
+                return (
+                  <Link key={item.href} href={item.href} className={`sidebar-link ${isActive ? 'active' : ''}`}
+                    onClick={() => setSidebarOpen(false)} style={{ position: 'relative' }}>
+                    <item.icon size={17} />
+                    <span>{item.label}</span>
+                    {isActive && <motion.div layoutId="activeTab" style={{ position: 'absolute', left: 0, width: 3, top: 6, bottom: 6, borderRadius: 2, background: 'var(--accent)' }} />}
+                  </Link>
+                );
+              })}
+            </div>
+          ))}
         </nav>
 
         <div style={{ padding: '0 4px', display: 'flex', flexDirection: 'column', gap: 2 }}>

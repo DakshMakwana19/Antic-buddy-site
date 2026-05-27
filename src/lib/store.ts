@@ -42,15 +42,17 @@ export const useAppStore = create<AppState>()(
 
       fetchData: async () => {
         try {
+          // Fetch all products (no limit = return all)
           const [productsRes, activityRes, recognitionRes] = await Promise.all([
-            fetch('/api/products').then(res => res.json()),
+            fetch('/api/products?limit=0').then(res => res.json()),
             fetch('/api/activity').then(res => res.json()),
             fetch('/api/recognition').then(res => res.json()),
           ]);
           set({
-            products: productsRes || [],
-            activityLogs: activityRes || [],
-            recognitionLogs: recognitionRes || [],
+            // API returns { products: [...], total, page, limit }
+            products: Array.isArray(productsRes) ? productsRes : (productsRes?.products || []),
+            activityLogs: Array.isArray(activityRes) ? activityRes : (activityRes?.activityLogs || activityRes || []),
+            recognitionLogs: Array.isArray(recognitionRes) ? recognitionRes : (recognitionRes?.recognitionLogs || recognitionRes || []),
           });
         } catch (error) {
           console.error("Failed to fetch data:", error);

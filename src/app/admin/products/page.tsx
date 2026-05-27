@@ -1,11 +1,19 @@
 'use client';
-import { useState, useMemo, useRef } from 'react';
+import { useState, useMemo, useRef, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Plus, Edit2, Trash2, Eye, Package, X, Upload, Image as ImageIcon, Filter } from 'lucide-react';
+import {
+  Search, Plus, Edit2, Trash2, Eye, Package, X, Upload, Image as ImageIcon,
+  Filter, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Download,
+  CheckSquare, Square, MoreHorizontal, Tag, Layers
+} from 'lucide-react';
 import { useAppStore } from '@/lib/store';
 import { Product } from '@/types';
 
 type EditableProduct = Omit<Product, 'price' | 'stock'> & { price: string | number; stock: string | number };
+type SortKey = 'name' | 'code' | 'category' | 'status' | 'createdAt';
+type SortDir = 'asc' | 'desc';
+
+const PAGE_SIZES = [25, 50, 100];
 
 const emptyProduct = (): EditableProduct => ({
   id: '', name: '', code: '', category: '', tags: [], images: [], image: '',
@@ -15,49 +23,105 @@ const emptyProduct = (): EditableProduct => ({
   updatedAt: new Date().toISOString(),
 });
 
+function exportToCSV(products: Product[]) {
+  const headers = ['SKU', 'Product Name', 'Short Name', 'Brand', 'Size', 'Unit', 'Category', 'Description', 'Price', 'Stock', 'Status', 'Co-Create'];
+  const rows = products.map(p => [
+    p.code, p.name, p.shortName || '', p.brand || '',
+    p.size || p.specifications?.Size || '', p.unit || '',
+    p.category, p.description || '', p.price, p.stock,
+    p.status, p.isCocreate ? 'Yes' : 'No',
+  ]);
+  const csv = [headers, ...rows].map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `anticbuddy-products-${new Date().toISOString().slice(0, 10)}.csv`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
 export default function ProductsPage() {
-  const { products, deleteProduct, updateProduct, addProduct, user } = useAppStore();
+  const { products, deleteProduct, updateProduct, addProduct, fetchData, user } = useAppStore();
   const [search, setSearch] = useState('');
   const [filterCategory, setFilterCategory] = useState('All');
-  
+  const [filterStatus, setFilterStatus] = useState('All');
+  const [filterCocreate, setFilterCocreate] = useState('All');
+  const [sortKey, setSortKey] = useState<SortKey>('name');
+  const [sortDir, setSortDir] = useState<SortDir>('asc');
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+
   const [showModal, setShowModal] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editProduct, setEditProduct] = useState<EditableProduct>(emptyProduct());
   const [specs, setSpecs] = useState<{ key: string; val: string }[]>([]);
   const [tagsInput, setTagsInput] = useState('');
-  
+  const [imagePreview, setImagePreview] = useState('');
   const [viewProduct, setViewProduct] = useState<Product | null>(null);
-  const [imagePreview, setImagePreview] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Dynamic Categories from database
+  useEffect(() => { fetchData(); }, []);
+
   const categories = useMemo(() => {
     const cats = new Set<string>();
     products.forEach(p => { if (p.category) cats.add(p.category); });
-    return ['All', ...Array.from(cats)];
+    return ['All', ...Array.from(cats).sort()];
   }, [products]);
 
   const filtered = useMemo(() => {
-    return products.filter(p => {
-      const matchSearch = search ? (
-        p.name.toLowerCase().includes(search.toLowerCase()) ||
-        p.code.toLowerCase().includes(search.toLowerCase()) ||
-        p.category.toLowerCase().includes(search.toLowerCase()) ||
-        (p.tags && p.tags.some(t => t.toLowerCase().includes(search.toLowerCase())))
-      ) : true;
-      const matchCat = filterCategory === 'All' ? true : p.category === filterCategory;
-      return matchSearch && matchCat;
+    let list = products.filter(p => {
+      const q = search.toLowerCase();
+      const matchSearch = !search || (
+        p.name?.toLowerCase().includes(q) ||
+        p.code?.toLowerCase().includes(q) ||
+        p.category?.toLowerCase().includes(q) ||
+        p.shortName?.toLowerCase().includes(q) ||
+        p.brand?.toLowerCase().includes(q) ||
+        (p.tags && p.tags.some(t => t.toLowerCase().includes(q)))
+      );
+      const matchCat = filterCategory === 'All' || p.category === filterCategory;
+      const matchStatus = filterStatus === 'All' || p.status === filterStatus;
+      const matchCocreate = filterCocreate === 'All' || (filterCocreate === 'yes' ? p.isCocreate : !p.isCocreate);
+      return matchSearch && matchCat && matchStatus && matchCocreate;
     });
-  }, [products, search, filterCategory]);
+
+    list = [...list].sort((a, b) => {
+      const aVal = String((a as any)[sortKey] ?? '').toLowerCase();
+      const bVal = String((b as any)[sortKey] ?? '').toLowerCase();
+      return sortDir === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+    });
+    return list;
+  }, [products, search, filterCategory, filterStatus, filterCocreate, sortKey, sortDir]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const paginated = filtered.slice((page - 1) * pageSize, page * pageSize);
+
+  const handleSort = (key: SortKey) => {
+    if (sortKey === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    else { setSortKey(key); setSortDir('asc'); }
+    setPage(1);
+  };
+
+  const toggleSelect = (id: string) => {
+    const n = new Set(selected);
+    n.has(id) ? n.delete(id) : n.add(id);
+    setSelected(n);
+  };
+  const toggleAll = () => {
+    if (selected.size === paginated.length) setSelected(new Set());
+    else setSelected(new Set(paginated.map(p => p.id)));
+  };
+  const bulkDelete = async () => {
+    if (!confirm(`Delete ${selected.size} selected products?`)) return;
+    for (const id of selected) await deleteProduct(id);
+    setSelected(new Set());
+  };
 
   const handleImageFile = (file: File) => {
     if (!file.type.startsWith('image/')) return;
-    if (file.size > 5 * 1024 * 1024) { alert('Image must be under 5MB'); return; }
     const reader = new FileReader();
-    reader.onload = (e) => {
-      const result = e.target?.result as string;
-      setImagePreview(result);
-    };
+    reader.onload = e => setImagePreview(e.target?.result as string);
     reader.readAsDataURL(file);
   };
 
@@ -71,32 +135,21 @@ export default function ProductsPage() {
     const specArr = Object.entries(product.specifications || {}).map(([k, v]) => ({ key: k, val: v }));
     setSpecs(specArr.length > 0 ? specArr : [{ key: 'Size', val: '' }]);
     setImagePreview(product.image || '');
-    setIsEditing(true);
-    setShowModal(true);
+    setIsEditing(true); setShowModal(true);
   };
 
   const openAdd = () => {
     setEditProduct({ ...emptyProduct(), id: `PRD-${Date.now()}`, createdBy: user?.name || 'Admin' });
-    setTagsInput('');
-    setSpecs([{ key: 'Bottle Type', val: '' }, { key: 'Size', val: '' }]);
-    setImagePreview('');
-    setIsEditing(false);
-    setShowModal(true);
+    setTagsInput(''); setSpecs([{ key: 'Bottle Type', val: '' }, { key: 'Size', val: '' }]);
+    setImagePreview(''); setIsEditing(false); setShowModal(true);
   };
 
   const handleSave = async () => {
-    if (!editProduct.name || !editProduct.code) {
-      alert('Product Name and Code are required.');
-      return;
-    }
-    
+    if (!editProduct.name || !editProduct.code) { alert('Name and Code are required.'); return; }
     const specRecord: Record<string, string> = {};
-    specs.forEach(s => {
-      if (s.key.trim() && s.val.trim()) specRecord[s.key.trim()] = s.val.trim();
-    });
-
-    const finalProduct: Product = {
-      ...editProduct,
+    specs.forEach(s => { if (s.key.trim() && s.val.trim()) specRecord[s.key.trim()] = s.val.trim(); });
+    const final: Product = {
+      ...editProduct as Product,
       price: Number(editProduct.price) || 0,
       stock: Number(editProduct.stock) || 0,
       tags: tagsInput.split(',').map(t => t.trim()).filter(Boolean),
@@ -105,96 +158,157 @@ export default function ProductsPage() {
       images: [imagePreview || editProduct.image || ''].filter(Boolean),
       updatedAt: new Date().toISOString(),
     };
-
-    if (isEditing) {
-      await updateProduct(finalProduct.id, finalProduct);
-    } else {
-      await addProduct(finalProduct);
-    }
-    setShowModal(false);
+    if (isEditing) await updateProduct(final.id, final);
+    else await addProduct(final);
+    setShowModal(false); setImagePreview('');
   };
 
-  const closeModal = () => { setShowModal(false); setImagePreview(''); };
+  const SortIcon = ({ col }: { col: SortKey }) => (
+    <span style={{ marginLeft: 4, opacity: sortKey === col ? 1 : 0.3 }}>
+      {sortKey === col && sortDir === 'desc' ? <ChevronDown size={13} /> : <ChevronUp size={13} />}
+    </span>
+  );
 
-
+  const statusColor = (s: string) => s === 'active' ? 'badge-success' : s === 'draft' ? 'badge-warning' : 'badge-danger';
 
   return (
     <div>
+      {/* Header */}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
         <div>
-          <h1 className="page-title" style={{ marginBottom: 4 }}>Products Management</h1>
-          <p className="page-subtitle">{products.length} total · {filtered.length} showing</p>
+          <h1 className="page-title" style={{ marginBottom: 4 }}>Products</h1>
+          <p className="page-subtitle">{filtered.length} of {products.length} products</p>
         </div>
-        <button className="btn-primary" onClick={openAdd}><Plus size={16} /> Add Product</button>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <button className="btn-secondary" onClick={() => exportToCSV(filtered)} style={{ fontSize: 13, padding: '9px 16px' }}>
+            <Download size={14} /> Export CSV
+          </button>
+          <button className="btn-primary" onClick={openAdd} style={{ fontSize: 13, padding: '9px 16px' }}>
+            <Plus size={14} /> Add Product
+          </button>
+        </div>
       </div>
 
-      {/* Search & Filters */}
-      <div style={{ marginBottom: 16, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-        <div className="search-wrapper" style={{ flex: '1 1 300px' }}>
-          <Search size={16} />
-          <input className="input-field" placeholder="Search by name, code, tags or category..." value={search} onChange={e => setSearch(e.target.value)} style={{ paddingLeft: 42 }} />
+      {/* Filters */}
+      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 16, padding: '14px 16px', background: 'var(--bg-card)', border: '1px solid var(--surface-border)', borderRadius: 'var(--radius-lg)' }}>
+        <div className="search-wrapper" style={{ flex: '1 1 240px' }}>
+          <Search size={15} />
+          <input className="input-field" placeholder="Search name, SKU, category, brand..." value={search}
+            onChange={e => { setSearch(e.target.value); setPage(1); }} style={{ paddingLeft: 42, height: 38 }} />
         </div>
-        <div style={{ flex: '0 0 auto', display: 'flex', alignItems: 'center', gap: 8, background: 'var(--bg-glass)', border: '1px solid var(--surface-border)', padding: '0 12px', borderRadius: 'var(--radius-md)' }}>
-          <Filter size={16} color="var(--text-muted)" />
-          <select value={filterCategory} onChange={e => setFilterCategory(e.target.value)} style={{ background: 'transparent', border: 'none', color: 'var(--text-primary)', outline: 'none', padding: '10px 0', cursor: 'pointer' }}>
-            {categories.map(c => <option key={c} value={c}>{c}</option>)}
+        {[
+          { label: 'Category', value: filterCategory, setter: setFilterCategory, options: categories },
+          { label: 'Status', value: filterStatus, setter: setFilterStatus, options: ['All', 'active', 'discontinued', 'draft'] },
+          { label: 'Type', value: filterCocreate, setter: setFilterCocreate, options: [['All', 'All'], ['yes', 'Co-Create'], ['no', 'Standard']] as [string, string][] },
+        ].map(({ label, value, setter, options }) => (
+          <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--bg-glass)', border: '1px solid var(--surface-border)', padding: '0 12px', borderRadius: 'var(--radius-md)', height: 38 }}>
+            <Filter size={13} color="var(--text-muted)" />
+            <select value={value} onChange={e => { setter(e.target.value); setPage(1); }}
+              style={{ background: 'transparent', border: 'none', color: 'var(--text-primary)', outline: 'none', fontSize: 13, cursor: 'pointer' }}>
+              {options.map(o => Array.isArray(o)
+                ? <option key={o[0]} value={o[0]}>{o[1]}</option>
+                : <option key={o} value={o}>{o === 'All' ? `All ${label}` : o}</option>
+              )}
+            </select>
+          </div>
+        ))}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--bg-glass)', border: '1px solid var(--surface-border)', padding: '0 12px', borderRadius: 'var(--radius-md)', height: 38, fontSize: 13, color: 'var(--text-muted)' }}>
+          <span>Show</span>
+          <select value={pageSize} onChange={e => { setPageSize(Number(e.target.value)); setPage(1); }}
+            style={{ background: 'transparent', border: 'none', color: 'var(--text-primary)', outline: 'none', cursor: 'pointer', fontSize: 13 }}>
+            {PAGE_SIZES.map(s => <option key={s} value={s}>{s}</option>)}
           </select>
+          <span>/ page</span>
         </div>
       </div>
 
-      {/* Products Table */}
+      {/* Bulk Actions */}
+      <AnimatePresence>
+        {selected.size > 0 && (
+          <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+            style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 16px', background: 'var(--accent-subtle)', border: '1px solid rgba(99,102,241,0.3)', borderRadius: 'var(--radius-md)', marginBottom: 12, fontSize: 13 }}>
+            <span style={{ color: 'var(--accent-hover)', fontWeight: 600 }}>{selected.size} selected</span>
+            <button className="btn-danger" style={{ padding: '6px 14px', fontSize: 12 }} onClick={bulkDelete}>
+              <Trash2 size={13} /> Delete Selected
+            </button>
+            <button className="btn-secondary" style={{ padding: '6px 14px', fontSize: 12 }} onClick={() => exportToCSV(products.filter(p => selected.has(p.id)))}>
+              <Download size={13} /> Export Selected
+            </button>
+            <button onClick={() => setSelected(new Set())} style={{ marginLeft: 'auto', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>
+              <X size={16} />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Table */}
       <div className="glass-card" style={{ overflow: 'hidden' }}>
-        <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-          <table className="data-table" style={{ minWidth: 620 }}>
+        <div style={{ overflowX: 'auto' }}>
+          <table className="data-table" style={{ minWidth: 700 }}>
             <thead>
               <tr>
-                <th>Product</th>
-                <th>Code</th>
-                <th>Category</th>
-                <th>Price / Stock</th>
-                <th>Status</th>
+                <th style={{ width: 40 }}>
+                  <button onClick={toggleAll} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', alignItems: 'center' }}>
+                    {selected.size > 0 && selected.size === paginated.length ? <CheckSquare size={16} color="var(--accent-hover)" /> : <Square size={16} />}
+                  </button>
+                </th>
+                {[['name', 'Product'], ['code', 'SKU'], ['category', 'Category'], ['status', 'Status']].map(([key, label]) => (
+                  <th key={key} onClick={() => handleSort(key as SortKey)} style={{ cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap' }}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center' }}>{label}<SortIcon col={key as SortKey} /></span>
+                  </th>
+                ))}
+                <th>Type</th>
                 <th style={{ textAlign: 'right' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
               <AnimatePresence>
-                {filtered.map((p) => (
-                  <motion.tr key={p.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} layout>
+                {paginated.map(p => (
+                  <motion.tr key={p.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} layout
+                    style={{ background: selected.has(p.id) ? 'var(--accent-subtle)' : undefined }}>
+                    <td>
+                      <button onClick={() => toggleSelect(p.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', alignItems: 'center' }}>
+                        {selected.has(p.id) ? <CheckSquare size={15} color="var(--accent-hover)" /> : <Square size={15} />}
+                      </button>
+                    </td>
                     <td>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <div style={{ width: 40, height: 40, borderRadius: 8, overflow: 'hidden', flexShrink: 0, background: 'var(--accent-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--surface-border)' }}>
-                          {p.image
-                            ? <img src={p.image} alt={p.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                            : <Package size={16} color="var(--accent-hover)" />
-                          }
+                        <div style={{ width: 36, height: 36, borderRadius: 8, overflow: 'hidden', flexShrink: 0, background: 'var(--accent-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--surface-border)' }}>
+                          {p.image ? <img src={p.image} alt={p.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Package size={14} color="var(--accent-hover)" />}
                         </div>
                         <div>
-                          <div style={{ fontWeight: 600, fontSize: 13, color: 'var(--text-primary)' }}>{p.name}</div>
-                          <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-                            {p.tags && p.tags.length > 0 ? p.tags.slice(0, 2).join(', ') : 'No tags'}
-                          </div>
+                          <div style={{ fontWeight: 600, fontSize: 13, color: 'var(--text-primary)', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</div>
+                          <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{p.shortName || p.brand || (p.tags?.[0] ?? '')}</div>
                         </div>
                       </div>
                     </td>
                     <td><code style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--accent-hover)', background: 'var(--accent-subtle)', padding: '2px 8px', borderRadius: 4 }}>{p.code}</code></td>
-                    <td style={{ fontSize: 13 }}>{p.category || '—'}</td>
                     <td style={{ fontSize: 13 }}>
-                      ${p.price?.toFixed(2) || '0.00'} · <strong>{p.stock}</strong> in stock
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                        <Layers size={12} color="var(--text-muted)" />{p.category || '—'}
+                      </span>
                     </td>
-                    <td><span className={`badge ${p.status === 'active' ? 'badge-success' : p.status === 'draft' ? 'badge-warning' : 'badge-danger'}`}>{p.status}</span></td>
+                    <td><span className={`badge ${statusColor(p.status)}`}>{p.status}</span></td>
                     <td>
-                      <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
+                      {p.isCocreate ? (
+                        <span className="badge badge-accent" style={{ fontSize: 10 }}><Tag size={9} style={{ marginRight: 3 }} />Co-Create</span>
+                      ) : (
+                        <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>Standard</span>
+                      )}
+                    </td>
+                    <td>
+                      <div style={{ display: 'flex', gap: 5, justifyContent: 'flex-end' }}>
                         <button onClick={() => setViewProduct(p)} title="View"
-                          style={{ padding: '6px 10px', background: 'var(--bg-glass)', border: '1px solid var(--surface-border)', borderRadius: 6, cursor: 'pointer', color: 'var(--text-secondary)', fontSize: 11, display: 'flex', alignItems: 'center', gap: 4 }}>
+                          style={{ padding: '6px 8px', background: 'var(--bg-glass)', border: '1px solid var(--surface-border)', borderRadius: 6, cursor: 'pointer', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center' }}>
                           <Eye size={13} />
                         </button>
                         <button onClick={() => openEdit(p)} title="Edit"
-                          style={{ padding: '6px 12px', background: 'var(--accent-subtle)', border: '1px solid rgba(99,102,241,0.3)', borderRadius: 6, cursor: 'pointer', color: 'var(--accent-hover)', fontSize: 12, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 5 }}>
-                          <Edit2 size={13} /> Edit
+                          style={{ padding: '6px 10px', background: 'var(--accent-subtle)', border: '1px solid rgba(99,102,241,0.3)', borderRadius: 6, cursor: 'pointer', color: 'var(--accent-hover)', fontSize: 12, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
+                          <Edit2 size={12} /> Edit
                         </button>
                         <button onClick={() => handleDelete(p.id)} title="Delete"
-                          style={{ padding: '6px 10px', background: 'var(--danger-subtle)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 6, cursor: 'pointer', color: 'var(--danger)' }}>
-                          <Trash2 size={13} />
+                          style={{ padding: '6px 8px', background: 'var(--danger-subtle)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 6, cursor: 'pointer', color: 'var(--danger)', display: 'flex', alignItems: 'center' }}>
+                          <Trash2 size={12} />
                         </button>
                       </div>
                     </td>
@@ -204,10 +318,49 @@ export default function ProductsPage() {
             </tbody>
           </table>
         </div>
+
         {filtered.length === 0 && (
           <div style={{ padding: 60, textAlign: 'center' }}>
-            <Package size={36} color="var(--text-muted)" style={{ marginBottom: 10 }} />
-            <p style={{ fontSize: 14, color: 'var(--text-muted)' }}>{products.length === 0 ? 'No products yet. Click "Add Product" to get started.' : 'No products match your filters.'}</p>
+            <Package size={36} color="var(--text-muted)" style={{ marginBottom: 12 }} />
+            <p style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 4 }}>No products found</p>
+            <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>{products.length === 0 ? 'Import a CSV or add products manually.' : 'Try adjusting your search or filters.'}</p>
+          </div>
+        )}
+
+        {/* Pagination */}
+        {filtered.length > 0 && (
+          <div style={{ padding: '14px 20px', borderTop: '1px solid var(--surface-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
+            <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>
+              Showing {((page - 1) * pageSize) + 1}–{Math.min(page * pageSize, filtered.length)} of {filtered.length}
+            </span>
+            <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+              <button onClick={() => setPage(1)} disabled={page === 1}
+                style={{ padding: '6px 10px', background: 'var(--bg-glass)', border: '1px solid var(--surface-border)', borderRadius: 6, cursor: page === 1 ? 'default' : 'pointer', color: page === 1 ? 'var(--text-muted)' : 'var(--text-primary)', fontSize: 13 }}>«</button>
+              <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
+                style={{ padding: '6px 10px', background: 'var(--bg-glass)', border: '1px solid var(--surface-border)', borderRadius: 6, cursor: page === 1 ? 'default' : 'pointer', color: page === 1 ? 'var(--text-muted)' : 'var(--text-primary)', display: 'flex', alignItems: 'center' }}>
+                <ChevronLeft size={15} />
+              </button>
+              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                let p = i + 1;
+                if (totalPages > 5) {
+                  if (page <= 3) p = i + 1;
+                  else if (page >= totalPages - 2) p = totalPages - 4 + i;
+                  else p = page - 2 + i;
+                }
+                return (
+                  <button key={p} onClick={() => setPage(p)}
+                    style={{ padding: '6px 11px', background: p === page ? 'var(--accent)' : 'var(--bg-glass)', border: `1px solid ${p === page ? 'var(--accent)' : 'var(--surface-border)'}`, borderRadius: 6, cursor: 'pointer', color: p === page ? 'white' : 'var(--text-primary)', fontSize: 13, fontWeight: p === page ? 700 : 400 }}>
+                    {p}
+                  </button>
+                );
+              })}
+              <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}
+                style={{ padding: '6px 10px', background: 'var(--bg-glass)', border: '1px solid var(--surface-border)', borderRadius: 6, cursor: page === totalPages ? 'default' : 'pointer', color: page === totalPages ? 'var(--text-muted)' : 'var(--text-primary)', display: 'flex', alignItems: 'center' }}>
+                <ChevronRight size={15} />
+              </button>
+              <button onClick={() => setPage(totalPages)} disabled={page === totalPages}
+                style={{ padding: '6px 10px', background: 'var(--bg-glass)', border: '1px solid var(--surface-border)', borderRadius: 6, cursor: page === totalPages ? 'default' : 'pointer', color: page === totalPages ? 'var(--text-muted)' : 'var(--text-primary)', fontSize: 13 }}>»</button>
+            </div>
           </div>
         )}
       </div>
@@ -216,87 +369,79 @@ export default function ProductsPage() {
         {categories.filter(c => c !== 'All').map(c => <option key={c} value={c} />)}
       </datalist>
 
-      {/* ── ADD / EDIT MODAL ── */}
+      {/* Add / Edit Modal */}
       <AnimatePresence>
         {showModal && (
-          <motion.div className="modal-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={closeModal} style={{ zIndex: 1000, overflowY: 'auto' }}>
+          <motion.div className="modal-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            onClick={() => { setShowModal(false); setImagePreview(''); }} style={{ zIndex: 1000, overflowY: 'auto' }}>
             <motion.div className="modal-content" initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
-              onClick={e => e.stopPropagation()} style={{ padding: '22px 18px', maxWidth: 800, margin: '40px auto' }}>
-
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
+              onClick={e => e.stopPropagation()} style={{ padding: '24px 22px', maxWidth: 820, margin: '40px auto' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
                 <h2 style={{ fontSize: 17, fontWeight: 700 }}>{isEditing ? '✏️ Edit Product' : '➕ Add New Product'}</h2>
-                <button onClick={closeModal} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}><X size={20} /></button>
+                <button onClick={() => { setShowModal(false); setImagePreview(''); }} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}><X size={20} /></button>
               </div>
 
-              {/* Image Upload */}
-              <div style={{ marginBottom: 16 }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>Product Image</div>
-                <input ref={fileInputRef} type="file" accept="image/*" style={{ display: 'none' }}
-                  onChange={e => { const f = e.target.files?.[0]; if (f) handleImageFile(f); }} />
-                {imagePreview ? (
-                  <div style={{ position: 'relative' }}>
-                    <img src={imagePreview} alt="preview" style={{ width: '100%', height: 150, objectFit: 'cover', borderRadius: 'var(--radius-md)', border: '1px solid var(--surface-border)' }} />
-                    <button type="button" onClick={() => { setImagePreview(''); setEditProduct(prev => ({ ...prev, image: '' })); }}
-                      style={{ position: 'absolute', top: 6, right: 6, background: 'rgba(0,0,0,0.7)', border: 'none', borderRadius: '50%', width: 26, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'white' }}>
-                      <X size={13} />
-                    </button>
-                    <button type="button" onClick={() => fileInputRef.current?.click()}
-                      style={{ position: 'absolute', bottom: 6, right: 6, background: 'rgba(0,0,0,0.75)', border: 'none', borderRadius: 6, padding: '4px 10px', cursor: 'pointer', color: 'white', fontSize: 11, display: 'flex', alignItems: 'center', gap: 4 }}>
-                      <ImageIcon size={11} /> Change
-                    </button>
-                  </div>
-                ) : (
-                  <div onClick={() => fileInputRef.current?.click()}
-                    style={{ border: '2px dashed var(--surface-border)', borderRadius: 'var(--radius-md)', padding: '18px', textAlign: 'center', cursor: 'pointer', background: 'var(--bg-glass)' }}>
-                    <Upload size={20} color="var(--text-muted)" style={{ marginBottom: 6 }} />
-                    <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>Tap to upload image</p>
-                  </div>
-                )}
+              <input ref={fileInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={e => { const f = e.target.files?.[0]; if (f) handleImageFile(f); }} />
+
+              <div className="responsive-form-grid" style={{ marginBottom: 14 }}>
+                <div className="float-label"><label>Product Name *</label><input className="input-field" value={editProduct.name} onChange={e => setEditProduct(p => ({ ...p, name: e.target.value }))} placeholder="e.g. COSTA 1 LTR" /></div>
+                <div className="float-label"><label>SKU / Code *</label><input className="input-field" value={editProduct.code} onChange={e => setEditProduct(p => ({ ...p, code: e.target.value }))} placeholder="e.g. 300003" /></div>
+                <div className="float-label"><label>Category</label><input className="input-field" list="dynamicCategories" value={editProduct.category} onChange={e => setEditProduct(p => ({ ...p, category: e.target.value }))} /></div>
+                <div className="float-label"><label>Short Name / Brand</label><input className="input-field" value={editProduct.shortName || ''} onChange={e => setEditProduct(p => ({ ...p, shortName: e.target.value }))} placeholder="e.g. COSTA" /></div>
+                <div className="float-label"><label>Size</label><input className="input-field" value={editProduct.size || ''} onChange={e => setEditProduct(p => ({ ...p, size: e.target.value }))} placeholder="e.g. 500" /></div>
+                <div className="float-label"><label>Unit</label><input className="input-field" value={editProduct.unit || ''} onChange={e => setEditProduct(p => ({ ...p, unit: e.target.value }))} placeholder="ML / LTR / KG / GM" /></div>
+                <div className="float-label"><label>Price (₹)</label><input className="input-field" type="number" value={editProduct.price} onChange={e => setEditProduct(p => ({ ...p, price: e.target.value }))} /></div>
+                <div className="float-label"><label>Stock</label><input className="input-field" type="number" value={editProduct.stock} onChange={e => setEditProduct(p => ({ ...p, stock: e.target.value }))} /></div>
               </div>
 
-              {/* Fields */}
-              <div className="responsive-form-grid" style={{ marginBottom: 12 }}>
-                <div className="float-label"><label>Product Name *</label><input className="input-field" value={editProduct.name} onChange={e => setEditProduct(prev => ({ ...prev, name: e.target.value }))} placeholder="e.g. AquaPure 500ml" /></div>
-                <div className="float-label"><label>Product Code *</label><input className="input-field" value={editProduct.code} onChange={e => setEditProduct(prev => ({ ...prev, code: e.target.value }))} placeholder="e.g. APC-500" /></div>
-                <div className="float-label"><label>Category</label><input className="input-field" list="dynamicCategories" value={editProduct.category} onChange={e => setEditProduct(prev => ({ ...prev, category: e.target.value }))} placeholder="Custom category" /></div>
-                <div className="float-label"><label>Price ($)</label><input className="input-field" type="number" value={editProduct.price} onChange={e => setEditProduct(prev => ({ ...prev, price: e.target.value }))} /></div>
-                <div className="float-label"><label>Stock Quantity</label><input className="input-field" type="number" value={editProduct.stock} onChange={e => setEditProduct(prev => ({ ...prev, stock: e.target.value }))} /></div>
-                <div className="float-label">
-                  <label>Tags</label>
-                  <input className="input-field" placeholder="comma separated" value={tagsInput} onChange={e => setTagsInput(e.target.value)} />
-                </div>
-              </div>
-
-              {/* Dynamic Specifications */}
-              <div style={{ marginBottom: 20, padding: 14, background: 'var(--bg-primary)', borderRadius: 'var(--radius-md)', border: '1px solid var(--surface-border)' }}>
+              {/* Specs */}
+              <div style={{ marginBottom: 16, padding: 14, background: 'var(--bg-primary)', borderRadius: 10, border: '1px solid var(--surface-border)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
                   <h4 style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-secondary)' }}>Specifications</h4>
-                  <button type="button" onClick={() => setSpecs([...specs, { key: '', val: '' }])} style={{ background: 'none', border: 'none', color: 'var(--accent-hover)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 600 }}>
-                    <Plus size={14} /> Add Spec
+                  <button type="button" onClick={() => setSpecs([...specs, { key: '', val: '' }])} style={{ background: 'none', border: 'none', color: 'var(--accent-hover)', cursor: 'pointer', fontSize: 12, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <Plus size={13} /> Add
                   </button>
                 </div>
                 {specs.map((s, i) => (
-                  <div key={i} style={{ display: 'flex', gap: 10, marginBottom: 8 }}>
-                    <input className="input-field" placeholder="Name (e.g. Weight)" value={s.key} onChange={e => { const n = [...specs]; n[i].key = e.target.value; setSpecs(n); }} style={{ flex: 1 }} />
-                    <input className="input-field" placeholder="Value (e.g. 1.2kg)" value={s.val} onChange={e => { const n = [...specs]; n[i].val = e.target.value; setSpecs(n); }} style={{ flex: 2 }} />
-                    <button type="button" onClick={() => setSpecs(specs.filter((_, idx) => idx !== i))} style={{ background: 'var(--danger-subtle)', border: 'none', borderRadius: 8, padding: '0 12px', cursor: 'pointer', color: 'var(--danger)' }}>
-                      <Trash2 size={16} />
+                  <div key={i} style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+                    <input className="input-field" placeholder="Key (e.g. Bottle Type)" value={s.key} onChange={e => { const n = [...specs]; n[i].key = e.target.value; setSpecs(n); }} style={{ flex: 1 }} />
+                    <input className="input-field" placeholder="Value" value={s.val} onChange={e => { const n = [...specs]; n[i].val = e.target.value; setSpecs(n); }} style={{ flex: 2 }} />
+                    <button type="button" onClick={() => setSpecs(specs.filter((_, idx) => idx !== i))} style={{ background: 'var(--danger-subtle)', border: 'none', borderRadius: 8, padding: '0 10px', cursor: 'pointer', color: 'var(--danger)' }}>
+                      <Trash2 size={14} />
                     </button>
                   </div>
                 ))}
               </div>
 
-              <div className="float-label" style={{ marginBottom: 10 }}><label>Description</label><textarea className="input-field" rows={2} value={editProduct.description} onChange={e => setEditProduct(p => ({ ...p, description: e.target.value }))} style={{ resize: 'vertical' }} /></div>
-              <div className="float-label" style={{ marginBottom: 10 }}><label>Admin Notes</label><textarea className="input-field" rows={2} value={editProduct.notes} onChange={e => setEditProduct(p => ({ ...p, notes: e.target.value }))} style={{ resize: 'vertical' }} /></div>
-              <div className="float-label" style={{ marginBottom: 14 }}><label>Worker Instructions</label><textarea className="input-field" rows={2} value={editProduct.instructions} onChange={e => setEditProduct(p => ({ ...p, instructions: e.target.value }))} style={{ resize: 'vertical' }} /></div>
+              <div className="float-label" style={{ marginBottom: 12 }}><label>Tags</label><input className="input-field" placeholder="comma separated" value={tagsInput} onChange={e => setTagsInput(e.target.value)} /></div>
+              <div className="float-label" style={{ marginBottom: 12 }}><label>Description</label><textarea className="input-field" rows={2} value={editProduct.description} onChange={e => setEditProduct(p => ({ ...p, description: e.target.value }))} style={{ resize: 'vertical' }} /></div>
+              <div className="float-label" style={{ marginBottom: 12 }}><label>Admin Notes</label><textarea className="input-field" rows={2} value={editProduct.notes} onChange={e => setEditProduct(p => ({ ...p, notes: e.target.value }))} style={{ resize: 'vertical' }} /></div>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 18 }}>
-                <input type="checkbox" id="cocreate-modal" checked={editProduct.isCocreate} onChange={e => setEditProduct(p => ({ ...p, isCocreate: e.target.checked }))} style={{ width: 16, height: 16, accentColor: 'var(--accent)' }} />
-                <label htmlFor="cocreate-modal" style={{ fontSize: 13, cursor: 'pointer', color: 'var(--text-secondary)' }}>Co-Create Product</label>
+              {/* Image */}
+              <div style={{ marginBottom: 16 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>Product Image</div>
+                {imagePreview ? (
+                  <div style={{ position: 'relative' }}>
+                    <img src={imagePreview} alt="preview" style={{ width: '100%', height: 130, objectFit: 'cover', borderRadius: 10, border: '1px solid var(--surface-border)' }} />
+                    <button type="button" onClick={() => setImagePreview('')} style={{ position: 'absolute', top: 6, right: 6, background: 'rgba(0,0,0,0.7)', border: 'none', borderRadius: '50%', width: 26, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'white' }}>
+                      <X size={12} />
+                    </button>
+                  </div>
+                ) : (
+                  <div onClick={() => fileInputRef.current?.click()} style={{ border: '2px dashed var(--surface-border)', borderRadius: 10, padding: '16px', textAlign: 'center', cursor: 'pointer', background: 'var(--bg-glass)' }}>
+                    <Upload size={18} color="var(--text-muted)" style={{ marginBottom: 4 }} />
+                    <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>Click to upload image</p>
+                  </div>
+                )}
               </div>
 
-              <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
-                <button className="btn-secondary" onClick={closeModal}>Cancel</button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20 }}>
+                <input type="checkbox" id="cocreate-cb" checked={editProduct.isCocreate} onChange={e => setEditProduct(p => ({ ...p, isCocreate: e.target.checked }))} style={{ width: 16, height: 16, accentColor: 'var(--accent)' }} />
+                <label htmlFor="cocreate-cb" style={{ fontSize: 13, cursor: 'pointer', color: 'var(--text-secondary)' }}>Co-Create Product</label>
+              </div>
+
+              <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+                <button className="btn-secondary" onClick={() => { setShowModal(false); setImagePreview(''); }}>Cancel</button>
                 <button className="btn-primary" onClick={handleSave}>{isEditing ? 'Update Product' : 'Save Product'}</button>
               </div>
             </motion.div>
@@ -304,32 +449,35 @@ export default function ProductsPage() {
         )}
       </AnimatePresence>
 
-      {/* ── VIEW MODAL ── */}
+      {/* View Modal */}
       <AnimatePresence>
         {viewProduct && (
           <motion.div className="modal-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setViewProduct(null)} style={{ zIndex: 1000, overflowY: 'auto' }}>
             <motion.div className="modal-content" initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
-              onClick={e => e.stopPropagation()} style={{ padding: '22px 18px', maxWidth: 800, margin: '40px auto' }}>
+              onClick={e => e.stopPropagation()} style={{ padding: '24px 22px', maxWidth: 600, margin: '40px auto' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
-                <h2 style={{ fontSize: 17, fontWeight: 700 }}>{viewProduct.name}</h2>
+                <div>
+                  <h2 style={{ fontSize: 16, fontWeight: 700, marginBottom: 2 }}>{viewProduct.name}</h2>
+                  <code style={{ fontSize: 12, color: 'var(--accent-hover)', background: 'var(--accent-subtle)', padding: '1px 8px', borderRadius: 4 }}>{viewProduct.code}</code>
+                </div>
                 <div style={{ display: 'flex', gap: 8 }}>
-                  <button onClick={() => { setViewProduct(null); openEdit(viewProduct); }} className="btn-primary" style={{ padding: '6px 14px', fontSize: 13 }}><Edit2 size={13} /> Edit</button>
+                  <button onClick={() => { setViewProduct(null); openEdit(viewProduct); }} className="btn-primary" style={{ padding: '7px 14px', fontSize: 13 }}><Edit2 size={13} /> Edit</button>
                   <button onClick={() => setViewProduct(null)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}><X size={20} /></button>
                 </div>
               </div>
 
-              {viewProduct.image && (
-                <img src={viewProduct.image} alt={viewProduct.name}
-                  style={{ width: '100%', height: 180, objectFit: 'cover', borderRadius: 'var(--radius-lg)', marginBottom: 18, border: '1px solid var(--surface-border)' }} />
-              )}
+              {viewProduct.image && <img src={viewProduct.image} alt={viewProduct.name} style={{ width: '100%', height: 160, objectFit: 'cover', borderRadius: 10, marginBottom: 16, border: '1px solid var(--surface-border)' }} />}
 
-              <div className="responsive-form-grid" style={{ gap: 12, marginBottom: 14 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 10, marginBottom: 16 }}>
                 {[
-                  ['Code', viewProduct.code], ['Category', viewProduct.category],
-                  ['Price', `$${viewProduct.price?.toFixed(2)}`], ['Stock', viewProduct.stock],
-                  ['Status', viewProduct.status], ['Co-Create', viewProduct.isCocreate ? 'Yes' : 'No'],
+                  ['Category', viewProduct.category],
+                  ['Short Name', viewProduct.shortName || '—'],
+                  ['Brand', viewProduct.brand || '—'],
+                  ['Size', viewProduct.size ? `${viewProduct.size} ${viewProduct.unit || ''}` : (viewProduct.specifications?.Size || '—')],
+                  ['Status', viewProduct.status],
+                  ['Type', viewProduct.isCocreate ? 'Co-Create' : 'Standard'],
                 ].map(([label, val]) => (
-                  <div key={label as string}>
+                  <div key={label} style={{ padding: '10px 12px', background: 'var(--bg-primary)', borderRadius: 8, border: '1px solid var(--surface-border)' }}>
                     <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 3 }}>{label}</div>
                     <div style={{ fontSize: 13, fontWeight: 500 }}>{val || '—'}</div>
                   </div>
@@ -337,9 +485,9 @@ export default function ProductsPage() {
               </div>
 
               {viewProduct.specifications && Object.keys(viewProduct.specifications).length > 0 && (
-                <div style={{ marginBottom: 14, padding: 12, background: 'var(--bg-primary)', borderRadius: 8, border: '1px solid var(--surface-border)' }}>
+                <div style={{ padding: 12, background: 'var(--bg-primary)', borderRadius: 8, border: '1px solid var(--surface-border)', marginBottom: 12 }}>
                   <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 8 }}>Specifications</div>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 8 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 8 }}>
                     {Object.entries(viewProduct.specifications).map(([k, v]) => (
                       <div key={k} style={{ fontSize: 13 }}><span style={{ color: 'var(--text-secondary)' }}>{k}:</span> <strong>{v}</strong></div>
                     ))}
@@ -347,17 +495,8 @@ export default function ProductsPage() {
                 </div>
               )}
 
-              {viewProduct.tags && viewProduct.tags.length > 0 && (
-                <div style={{ marginBottom: 14 }}>
-                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                    {viewProduct.tags.map(t => <span key={t} style={{ fontSize: 11, background: 'var(--bg-glass)', padding: '2px 8px', borderRadius: 12, border: '1px solid var(--surface-border)' }}>{t}</span>)}
-                  </div>
-                </div>
-              )}
-
               {viewProduct.description && <div style={{ marginBottom: 10 }}><div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 4 }}>Description</div><div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6 }}>{viewProduct.description}</div></div>}
-              {viewProduct.notes && <div style={{ padding: 12, background: 'var(--warning-subtle)', borderRadius: 8, border: '1px solid rgba(245,158,11,0.2)', marginBottom: 8 }}><div style={{ fontSize: 11, fontWeight: 700, color: 'var(--warning)', marginBottom: 4 }}>Admin Notes</div><div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{viewProduct.notes}</div></div>}
-              {viewProduct.instructions && <div style={{ padding: 12, background: 'var(--info-subtle)', borderRadius: 8, border: '1px solid rgba(59,130,246,0.2)' }}><div style={{ fontSize: 11, fontWeight: 700, color: 'var(--info)', marginBottom: 4 }}>Worker Instructions</div><div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{viewProduct.instructions}</div></div>}
+              {viewProduct.notes && <div style={{ padding: 12, background: 'var(--warning-subtle)', borderRadius: 8, marginBottom: 8 }}><div style={{ fontSize: 11, fontWeight: 700, color: 'var(--warning)', marginBottom: 3 }}>Admin Notes</div><div style={{ fontSize: 13 }}>{viewProduct.notes}</div></div>}
             </motion.div>
           </motion.div>
         )}

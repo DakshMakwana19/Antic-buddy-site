@@ -1,11 +1,11 @@
 export interface Product {
   id: string;
-  name: string; // Used as title
+  name: string;
   code: string;
   category: string;
   tags: string[];
   images: string[];
-  image: string; // Kept for backward compatibility
+  image: string;
   price: number;
   stock: number;
   specifications: Record<string, string>;
@@ -17,15 +17,22 @@ export interface Product {
   createdAt: string;
   updatedAt: string;
   createdBy: string;
-  
+
+  // CSV-mapped fields
+  shortName?: string;
+  brand?: string;
+  size?: string;
+  unit?: string;
+  materialDescription?: string;
+  bottleType?: string;
+  labelSize?: string;
+  cfbSize?: string;
+  quantity?: number;
+
   // Legacy fields (optional)
   subcategory?: string;
-  bottleType?: string;
-  labelType?: string;
   packagingType?: string;
-  size?: string;
   color?: string;
-  quantity?: number;
 }
 
 export interface User {
@@ -43,7 +50,7 @@ export interface ActivityLog {
   action: string;
   target: string;
   timestamp: string;
-  type: 'scan' | 'view' | 'edit' | 'create' | 'delete' | 'login';
+  type: 'scan' | 'view' | 'edit' | 'create' | 'delete' | 'login' | 'import';
 }
 
 export interface RecognitionLog {
@@ -67,3 +74,20 @@ export interface DashboardStats {
   workersActive: number;
 }
 
+export interface ImportResult {
+  imported: number;
+  skipped: number;
+  errors: string[];
+  total: number;
+}
+
+export interface SortConfig {
+  key: keyof Product | '';
+  direction: 'asc' | 'desc';
+}
+
+export interface PaginationState {
+  page: number;
+  limit: number;
+  total: number;
+}
