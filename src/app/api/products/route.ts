@@ -1,69 +1,72 @@
 import { NextResponse } from 'next/server';
-import { readDb, writeDb } from '@/lib/db';
+import { connectDB, ProductModel } from '@/lib/db';
 import { Product } from '@/types';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: Request) {
-  const { searchParams } = new URL(req.url);
-  const search = searchParams.get('search') || '';
-  const category = searchParams.get('category') || '';
-  const status = searchParams.get('status') || '';
-  const isCocreate = searchParams.get('isCocreate') || '';
-  const page = parseInt(searchParams.get('page') || '1');
-  const limit = parseInt(searchParams.get('limit') || '0'); // 0 = all
-  const sortKey = searchParams.get('sortKey') || 'name';
-  const sortDir = searchParams.get('sortDir') || 'asc';
+  try {
+    await connectDB();
+    const { searchParams } = new URL(req.url);
+    const search = searchParams.get('search') || '';
+    const category = searchParams.get('category') || '';
+    const status = searchParams.get('status') || '';
+    const isCocreate = searchParams.get('isCocreate') || '';
+    const page = parseInt(searchParams.get('page') || '1');
+    const limit = parseInt(searchParams.get('limit') || '0');
+    const sortKey = searchParams.get('sortKey') || 'name';
+    const sortDir = searchParams.get('sortDir') || 'asc';
 
-  const db = await readDb();
-  let products = db.products;
+    let query: any = {};
 
-  // Filter
-  if (search) {
-    const q = search.toLowerCase();
-    products = products.filter(p =>
-      p.name?.toLowerCase().includes(q) ||
-      p.code?.toLowerCase().includes(q) ||
-      p.category?.toLowerCase().includes(q) ||
-      p.shortName?.toLowerCase().includes(q) ||
-      p.brand?.toLowerCase().includes(q) ||
-      (p.tags && p.tags.some(t => t.toLowerCase().includes(q)))
-    );
-  }
-  if (category && category !== 'All') products = products.filter(p => p.category === category);
-  if (status && status !== 'All') products = products.filter(p => p.status === status);
-  if (isCocreate === 'true') products = products.filter(p => p.isCocreate);
-  if (isCocreate === 'false') products = products.filter(p => !p.isCocreate);
+    if (search) {
+      const q = new RegExp(search, 'i');
+      query.$or = [
+        { name: q },
+        { code: q },
+        { category: q },
+        { shortName: q },
+        { brand: q },
+        { tags: q }
+      ];
+    }
+    if (category && category !== 'All') query.category = category;
+    if (status && status !== 'All') query.status = status;
+    if (isCocreate === 'true') query.isCocreate = true;
+    if (isCocreate === 'false') query.isCocreate = false;
 
-  // Sort
-  if (sortKey) {
-    products = [...products].sort((a, b) => {
-      const aVal = String((a as any)[sortKey] ?? '').toLowerCase();
-      const bVal = String((b as any)[sortKey] ?? '').toLowerCase();
-      const cmp = aVal.localeCompare(bVal);
-      return sortDir === 'asc' ? cmp : -cmp;
+    const total = await ProductModel.countDocuments(query);
+
+    let dbQuery = ProductModel.find(query);
+
+    if (sortKey) {
+      dbQuery = dbQuery.sort({ [sortKey]: sortDir === 'asc' ? 1 : -1 });
+    }
+
+    if (limit > 0) {
+      const start = (page - 1) * limit;
+      dbQuery = dbQuery.skip(start).limit(limit);
+    }
+
+    const docs = await dbQuery.lean();
+    const products = docs.map((doc: any) => {
+      const { _id, __v, ...rest } = doc;
+      return rest;
     });
+
+    return NextResponse.json({ products, total, page, limit });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
-
-  const total = products.length;
-
-  // Paginate
-  if (limit > 0) {
-    const start = (page - 1) * limit;
-    products = products.slice(start, start + limit);
-  }
-
-  return NextResponse.json({ products, total, page, limit });
 }
 
 export async function POST(req: Request) {
   try {
+    await connectDB();
     const product: Product = await req.json();
-    const db = await readDb();
-    db.products.push(product);
-    await writeDb(db);
+    await ProductModel.create(product);
     return NextResponse.json({ success: true, product });
-  } catch {
-    return NextResponse.json({ success: false, error: 'Failed to add product' }, { status: 500 });
+  } catch (error: any) {
+    return NextResponse.json({ success: false, error: 'Failed to add product', details: error.message }, { status: 500 });
   }
 }

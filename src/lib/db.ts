@@ -1,73 +1,92 @@
-import fs from 'fs/promises';
-import path from 'path';
-import { Product, ActivityLog, RecognitionLog } from '@/types';
+import mongoose from 'mongoose';
 
-const DB_PATH = path.join(process.cwd(), 'database.json');
+const MONGODB_URI = process.env.MONGODB_URI!;
 
-export interface DatabaseSchema {
-  products: Product[];
-  activityLogs: ActivityLog[];
-  recognitionLogs: RecognitionLog[];
+if (!MONGODB_URI) {
+  throw new Error('Please define the MONGODB_URI environment variable inside .env.local');
 }
 
-const defaultData: DatabaseSchema = {
-  products: [],
-  activityLogs: [],
-  recognitionLogs: [],
-};
+let cached = (global as any).mongoose;
 
-// Simple Mutex to prevent race conditions during concurrent reads/writes
-class Mutex {
-  private promise: Promise<void> | null = null;
-  async lock(): Promise<() => void> {
-    let release: () => void;
-    const nextPromise = new Promise<void>(res => { release = res; });
-    const currentPromise = this.promise;
-    this.promise = nextPromise;
-    if (currentPromise) {
-      await currentPromise;
-    }
-    return () => {
-      if (this.promise === nextPromise) {
-        this.promise = null;
-      }
-      release();
+if (!cached) {
+  cached = (global as any).mongoose = { conn: null, promise: null };
+}
+
+export async function connectDB() {
+  if (cached.conn) {
+    return cached.conn;
+  }
+
+  if (!cached.promise) {
+    const opts = {
+      bufferCommands: false,
     };
+
+    cached.promise = mongoose.connect(MONGODB_URI, opts).then((mongoose) => {
+      return mongoose;
+    });
   }
+  cached.conn = await cached.promise;
+  return cached.conn;
 }
 
-const dbMutex = new Mutex();
+// ─── SCHEMAS ─────────────────────────────────────────────────────────────────
 
-async function initDb() {
-  try {
-    await fs.access(DB_PATH);
-  } catch {
-    await fs.writeFile(DB_PATH, JSON.stringify(defaultData, null, 2));
-  }
-}
+const ProductSchema = new mongoose.Schema({
+  id: { type: String, required: true, unique: true },
+  name: { type: String, required: true },
+  code: { type: String, required: true },
+  category: { type: String, default: '' },
+  tags: { type: [String], default: [] },
+  images: { type: [String], default: [] },
+  image: { type: String, default: '' },
+  price: { type: Number, default: 0 },
+  stock: { type: Number, default: 0 },
+  specifications: { type: Map, of: String, default: {} },
+  description: { type: String, default: '' },
+  notes: { type: String, default: '' },
+  instructions: { type: String, default: '' },
+  isCocreate: { type: Boolean, default: false },
+  status: { type: String, default: 'active' },
+  createdAt: { type: String, default: () => new Date().toISOString() },
+  updatedAt: { type: String, default: () => new Date().toISOString() },
+  createdBy: { type: String, default: 'Admin' },
+  shortName: String,
+  brand: String,
+  size: String,
+  unit: String,
+  materialDescription: String,
+  bottleType: String,
+  labelSize: String,
+  cfbSize: String,
+  quantity: Number,
+  subcategory: String,
+  packagingType: String,
+  color: String,
+});
 
-export async function readDb(): Promise<DatabaseSchema> {
-  const release = await dbMutex.lock();
-  try {
-    await initDb();
-    const data = await fs.readFile(DB_PATH, 'utf-8');
-    return JSON.parse(data);
-  } catch (error) {
-    console.error("Failed to read database:", error);
-    return defaultData;
-  } finally {
-    release();
-  }
-}
+const ActivityLogSchema = new mongoose.Schema({
+  id: { type: String, required: true, unique: true },
+  userId: String,
+  userName: String,
+  action: String,
+  target: String,
+  timestamp: String,
+  type: { type: String },
+});
 
-export async function writeDb(data: DatabaseSchema): Promise<void> {
-  const release = await dbMutex.lock();
-  try {
-    await initDb();
-    await fs.writeFile(DB_PATH, JSON.stringify(data, null, 2));
-  } catch (error) {
-    console.error("Failed to write database:", error);
-  } finally {
-    release();
-  }
-}
+const RecognitionLogSchema = new mongoose.Schema({
+  id: { type: String, required: true, unique: true },
+  userId: String,
+  userName: String,
+  productId: String,
+  productName: String,
+  confidence: Number,
+  matched: Boolean,
+  timestamp: String,
+  imageUrl: String,
+});
+
+export const ProductModel = mongoose.models.Product || mongoose.model('Product', ProductSchema);
+export const ActivityLogModel = mongoose.models.ActivityLog || mongoose.model('ActivityLog', ActivityLogSchema);
+export const RecognitionLogModel = mongoose.models.RecognitionLog || mongoose.model('RecognitionLog', RecognitionLogSchema);
