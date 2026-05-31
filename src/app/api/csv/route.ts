@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { connectDB, ProductModel } from '@/lib/db';
+import { getDb } from '@/lib/db';
 import { Product } from '@/types';
 
 export const dynamic = 'force-dynamic';
@@ -54,7 +54,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: 'CSV must have a header and at least one data row' }, { status: 400 });
     }
 
-    await connectDB();
+    const db = await getDb();
     const rawHeaders = parseCSVLine(lines[0]);
     const mappedHeaders = rawHeaders.map(mapCSVHeaderToField);
 
@@ -132,14 +132,7 @@ export async function POST(req: Request) {
     }
 
     if (imported.length > 0) {
-      const bulkOps = imported.map((p) => ({
-        updateOne: {
-          filter: { code: p.code },
-          update: { $set: p },
-          upsert: true,
-        }
-      }));
-      await ProductModel.bulkWrite(bulkOps);
+      await db.bulkUpsertProducts(imported);
     }
 
     return NextResponse.json({
