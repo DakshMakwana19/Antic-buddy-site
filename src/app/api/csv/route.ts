@@ -1,10 +1,9 @@
 import { NextResponse } from 'next/server';
-import { readDb, writeDb } from '@/lib/db';
+import { connectDB, ProductModel } from '@/lib/db';
 import { Product } from '@/types';
 
 export const dynamic = 'force-dynamic';
 
-// Smart CSV column mapper
 function mapCSVHeaderToField(header: string): string {
   const h = header.toLowerCase().replace(/[^a-z0-9]/g, '');
   if (['sku', 'productcode', 'code', 'srno', 'materialcode'].includes(h)) return 'code';
@@ -55,15 +54,14 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: 'CSV must have a header and at least one data row' }, { status: 400 });
     }
 
+    await connectDB();
     const rawHeaders = parseCSVLine(lines[0]);
     const mappedHeaders = rawHeaders.map(mapCSVHeaderToField);
 
-    const db = await readDb();
-    const existingCodes = new Set(db.products.map(p => p.code));
-    
     const imported: Product[] = [];
     const skipped: string[] = [];
     const errors: string[] = [];
+    const codesToImport = new Set<string>();
 
     for (let i = 1; i < lines.length; i++) {
       if (!lines[i].trim()) continue;
@@ -79,7 +77,7 @@ export async function POST(req: Request) {
         const name = row.name || row.productname || '';
         
         if (!name && !code) { errors.push(`Row ${i + 1}: Missing name and code`); continue; }
-        if (existingCodes.has(code)) { skipped.push(code); continue; }
+        if (codesToImport.has(code)) { skipped.push(code); continue; }
 
         const isCocreate = row.brand?.toUpperCase() === 'COCREATE' || name.toUpperCase().includes('COCREATE');
         const statusRaw = row.status?.toLowerCase() || 'active';
@@ -127,14 +125,22 @@ export async function POST(req: Request) {
         };
 
         imported.push(product);
-        existingCodes.add(code);
+        codesToImport.add(code);
       } catch (err) {
         errors.push(`Row ${i + 1}: ${err instanceof Error ? err.message : 'Parse error'}`);
       }
     }
 
-    db.products.push(...imported);
-    await writeDb(db);
+    if (imported.length > 0) {
+      const bulkOps = imported.map((p) => ({
+        updateOne: {
+          filter: { code: p.code },
+          update: { $set: p },
+          upsert: true,
+        }
+      }));
+      await ProductModel.bulkWrite(bulkOps);
+    }
 
     return NextResponse.json({
       success: true,
@@ -143,7 +149,7 @@ export async function POST(req: Request) {
       errors,
       total: lines.length - 1,
     });
-  } catch (err) {
-    return NextResponse.json({ success: false, error: 'Failed to process CSV' }, { status: 500 });
+  } catch (err: any) {
+    return NextResponse.json({ success: false, error: err.message || 'Failed to process CSV' }, { status: 500 });
   }
 }
