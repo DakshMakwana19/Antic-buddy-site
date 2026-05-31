@@ -264,7 +264,7 @@ export default function ProductsPage() {
             <tbody>
               <AnimatePresence>
                 {paginated.map(p => (
-                  <motion.tr key={p.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} layout
+                  <motion.tr key={p.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                     style={{ background: selected.has(p.id) ? 'var(--accent-subtle)' : undefined }}>
                     <td>
                       <button onClick={() => toggleSelect(p.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', alignItems: 'center' }}>
@@ -298,15 +298,15 @@ export default function ProductsPage() {
                     </td>
                     <td>
                       <div style={{ display: 'flex', gap: 5, justifyContent: 'flex-end' }}>
-                        <button onClick={() => setViewProduct(p)} title="View"
+                        <button onClick={(e) => { e.stopPropagation(); setViewProduct(p); }} title="View"
                           style={{ padding: '6px 8px', background: 'var(--bg-glass)', border: '1px solid var(--surface-border)', borderRadius: 6, cursor: 'pointer', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center' }}>
                           <Eye size={13} />
                         </button>
-                        <button onClick={() => openEdit(p)} title="Edit"
+                        <button onClick={(e) => { e.stopPropagation(); openEdit(p); }} title="Edit"
                           style={{ padding: '6px 10px', background: 'var(--accent-subtle)', border: '1px solid rgba(99,102,241,0.3)', borderRadius: 6, cursor: 'pointer', color: 'var(--accent-hover)', fontSize: 12, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
                           <Edit2 size={12} /> Edit
                         </button>
-                        <button onClick={() => handleDelete(p.id)} title="Delete"
+                        <button onClick={(e) => { e.stopPropagation(); handleDelete(p.id); }} title="Delete"
                           style={{ padding: '6px 8px', background: 'var(--danger-subtle)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 6, cursor: 'pointer', color: 'var(--danger)', display: 'flex', alignItems: 'center' }}>
                           <Trash2 size={12} />
                         </button>
@@ -373,7 +373,7 @@ export default function ProductsPage() {
       <AnimatePresence>
         {showModal && (
           <motion.div className="modal-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            onClick={() => { setShowModal(false); setImagePreview(''); }} style={{ zIndex: 1000, overflowY: 'auto' }}>
+            onClick={(e) => { if (e.target === e.currentTarget) { setShowModal(false); setImagePreview(''); } }} style={{ zIndex: 1000, overflowY: 'auto' }}>
             <motion.div className="modal-content" initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
               onClick={e => e.stopPropagation()} style={{ padding: '24px 22px', maxWidth: 820, margin: '40px auto' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
@@ -452,7 +452,7 @@ export default function ProductsPage() {
       {/* View Modal */}
       <AnimatePresence>
         {viewProduct && (
-          <motion.div className="modal-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setViewProduct(null)} style={{ zIndex: 1000, overflowY: 'auto' }}>
+          <motion.div className="modal-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={(e) => { if (e.target === e.currentTarget) setViewProduct(null); }} style={{ zIndex: 1000, overflowY: 'auto' }}>
             <motion.div className="modal-content" initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
               onClick={e => e.stopPropagation()} style={{ padding: '24px 22px', maxWidth: 600, margin: '40px auto' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
