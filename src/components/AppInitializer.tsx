@@ -4,9 +4,11 @@ import { useAppStore } from '@/lib/store';
 
 export default function AppInitializer() {
   const fetchData = useAppStore(s => s.fetchData);
+  const fetchLandingContent = useAppStore(s => s.fetchLandingContent);
 
   useEffect(() => {
     fetchData();
+    fetchLandingContent();
     
     // Optional: Refresh data periodically for pseudo-realtime feel
     const interval = setInterval(() => {

@@ -65,6 +65,16 @@ export interface RecognitionLog {
   imageUrl: string;
 }
 
+export interface LandingContent {
+  heroTagline: string;
+  heroTitle: string;
+  heroSubtitle: string;
+  stats: { val: string; label: string }[];
+  founderQuote: string;
+  founderName: string;
+  founderTitle: string;
+}
+
 export interface DashboardStats {
   totalProducts: number;
   activeProducts: number;

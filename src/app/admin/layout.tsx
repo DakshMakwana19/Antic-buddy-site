@@ -29,6 +29,7 @@ const navGroups = [
     items: [
       { href: '/admin/recognition', label: 'AI Recognition', icon: Camera },
       { href: '/admin/settings', label: 'Settings', icon: Settings },
+  { href: '/admin/page-editor', label: 'Page Editor', icon: Settings },
     ],
   },
 ];

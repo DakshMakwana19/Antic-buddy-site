@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 import fs from 'fs/promises';
 import path from 'path';
-import { Product, ActivityLog, RecognitionLog } from '@/types';
+import { Product, ActivityLog, RecognitionLog, LandingContent } from '@/types';
 
 // ─── SCHEMAS ────────────────────────────────────────────────────────────────
 
@@ -47,6 +47,19 @@ export const ProductModel = mongoose.models.Product || mongoose.model('Product',
 export const ActivityLogModel = mongoose.models.ActivityLog || mongoose.model('ActivityLog', ActivityLogSchema);
 export const RecognitionLogModel = mongoose.models.RecognitionLog || mongoose.model('RecognitionLog', RecognitionLogSchema);
 
+const LandingContentSchema = new mongoose.Schema({
+  id: { type: String, default: 'landing_singleton', unique: true },
+  heroTagline: String,
+  heroTitle: String,
+  heroSubtitle: String,
+  stats: [{ val: String, label: String }],
+  founderQuote: String,
+  founderName: String,
+  founderTitle: String,
+});
+
+export const LandingContentModel = mongoose.models.LandingContent || mongoose.model('LandingContent', LandingContentSchema);
+
 // ─── CONNECTION ──────────────────────────────────────────────────────────────
 
 let cached = (global as any)._mongoose;
@@ -73,7 +86,22 @@ export async function connectDB(): Promise<boolean> {
 // ─── JSON FALLBACK (local dev) ───────────────────────────────────────────────
 
 const DB_PATH = path.join(process.cwd(), 'database.json');
-const defaultData = { products: [] as Product[], activityLogs: [] as ActivityLog[], recognitionLogs: [] as RecognitionLog[] };
+const defaultLandingContent: LandingContent = {
+  heroTagline: "Enterprise Product Intelligence Platform",
+  heroTitle: "Intelligent Product\nRecognition & Management",
+  heroSubtitle: "Built to simplify operations, train teams faster, and eliminate manual confusion. AI-powered recognition meets enterprise workflow.",
+  stats: [
+    { val: '16+', label: 'Products Tracked' },
+    { val: '97%', label: 'AI Accuracy' },
+    { val: '4x', label: 'Faster Training' },
+    { val: '24/7', label: 'Always On' },
+  ],
+  founderQuote: "This system transformed how our team identifies and handles products. What used to take 10 minutes of explanation now takes 2 seconds.",
+  founderName: "Tushar Makwana",
+  founderTitle: "Founder & Product Lead · AnticBuddy"
+};
+
+const defaultData = { products: [] as Product[], activityLogs: [] as ActivityLog[], recognitionLogs: [] as RecognitionLog[], landingContent: defaultLandingContent };
 
 async function readJson() {
   try {
@@ -104,6 +132,9 @@ export interface DbHelpers {
 
   getRecognitionLogs(): Promise<RecognitionLog[]>;
   insertRecognitionLog(log: RecognitionLog): Promise<void>;
+
+  getLandingContent(): Promise<LandingContent>;
+  updateLandingContent(content: LandingContent): Promise<void>;
 }
 
 function stripMongo(doc: any): any {
@@ -156,6 +187,21 @@ export async function getDb(): Promise<DbHelpers> {
       },
       async insertRecognitionLog(log) {
         await RecognitionLogModel.create(log);
+      },
+      async getLandingContent() {
+        const doc = await LandingContentModel.findOne({ id: 'landing_singleton' }).lean();
+        if (!doc) {
+          await LandingContentModel.create({ id: 'landing_singleton', ...defaultLandingContent });
+          return defaultLandingContent;
+        }
+        return stripMongo(doc) as LandingContent;
+      },
+      async updateLandingContent(content) {
+        await LandingContentModel.findOneAndUpdate(
+          { id: 'landing_singleton' },
+          { ...content },
+          { upsert: true, new: true }
+        );
       },
     };
   } else {
@@ -228,6 +274,15 @@ export async function getDb(): Promise<DbHelpers> {
       async insertRecognitionLog(log) {
         const db = await readJson();
         db.recognitionLogs = [log, ...(db.recognitionLogs || [])].slice(0, 1000);
+        await writeJson(db);
+      },
+      async getLandingContent() {
+        const db = await readJson();
+        return db.landingContent || defaultLandingContent;
+      },
+      async updateLandingContent(content) {
+        const db = await readJson();
+        db.landingContent = content;
         await writeJson(db);
       },
     };

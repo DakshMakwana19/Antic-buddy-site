@@ -1,13 +1,14 @@
 'use client';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { Product, User, ActivityLog, RecognitionLog } from '@/types';
+import { Product, User, ActivityLog, RecognitionLog, LandingContent } from '@/types';
 
 interface AppState {
   user: User | null;
   products: Product[];
   activityLogs: ActivityLog[];
   recognitionLogs: RecognitionLog[];
+  landingContent: LandingContent | null;
   theme: 'dark' | 'light';
   sidebarOpen: boolean;
 
@@ -23,6 +24,8 @@ interface AppState {
   deleteProduct: (id: string) => Promise<void>;
   addActivityLog: (log: ActivityLog) => Promise<void>;
   addRecognitionLog: (log: RecognitionLog) => Promise<void>;
+  fetchLandingContent: () => Promise<void>;
+  updateLandingContent: (content: LandingContent) => Promise<void>;
 }
 
 export const useAppStore = create<AppState>()(
@@ -32,6 +35,7 @@ export const useAppStore = create<AppState>()(
       products: [],
       activityLogs: [],
       recognitionLogs: [],
+      landingContent: null,
       theme: 'dark',
       sidebarOpen: true,
 
@@ -117,6 +121,28 @@ export const useAppStore = create<AppState>()(
           set((s) => ({ recognitionLogs: [log, ...s.recognitionLogs] }));
         } catch (error) {
           console.error("Recognition log error:", error);
+        }
+      },
+      fetchLandingContent: async () => {
+        try {
+          const res = await fetch('/api/settings/landing').then(r => r.json());
+          set({ landingContent: res });
+        } catch (error) {
+          console.error("Failed to fetch landing content:", error);
+        }
+      },
+      updateLandingContent: async (content) => {
+        try {
+          const res = await fetch('/api/settings/landing', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(content),
+          }).then(r => r.json());
+          if (res.success) {
+            set({ landingContent: content });
+          }
+        } catch (error) {
+          console.error("Failed to update landing content:", error);
         }
       },
     }),
